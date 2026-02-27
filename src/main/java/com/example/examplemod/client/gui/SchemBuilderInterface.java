@@ -1,0 +1,32 @@
+package com.example.examplemod.client.gui;
+
+import com.example.examplemod.client.gui.widgets.ScrollableDropDownList;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+
+public class SchemBuilderInterface extends Screen {
+
+    public SchemBuilderInterface(Component pTitle) {
+        super(pTitle);
+    }
+
+    @Override
+    protected void init() {
+        ScrollableDropDownList dropDownList = new ScrollableDropDownList(0,0, this.width /2, (int) (this.height*0.1), 3, Component.empty());
+
+        dropDownList.addTextEntry(Component.literal("Test 1"));
+        dropDownList.addTextEntry(Component.literal("Test 2"));
+        dropDownList.addTextEntry(Component.literal("Test 3"));
+        dropDownList.addTextEntry(Component.literal("Test 4"));
+        dropDownList.addTextEntry(Component.literal("Test 5"));
+
+        addRenderableWidget(dropDownList);
+    }
+
+    @Override
+    public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        renderBackground(pGuiGraphics);
+        super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+    }
+}
