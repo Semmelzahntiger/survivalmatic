@@ -1,4 +1,4 @@
-package com.example.examplemod.common.schem;
+package com.semmelzahntiger.survivalmatic.common.schem;
 
 import com.google.common.collect.ImmutableMap;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;

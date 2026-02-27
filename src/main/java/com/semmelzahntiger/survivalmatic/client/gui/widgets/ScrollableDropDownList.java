@@ -1,4 +1,4 @@
-package com.example.examplemod.client.gui.widgets;
+package com.semmelzahntiger.survivalmatic.client.gui.widgets;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
@@ -13,7 +13,7 @@ import net.minecraft.util.Mth;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.examplemod.ExampleMod.MODID;
+import static com.semmelzahntiger.survivalmatic.ExampleMod.MODID;
 
 public class ScrollableDropDownList extends AbstractWidget {
     private static final ResourceLocation ENTRY_TEXTURE = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/list_entry.png");

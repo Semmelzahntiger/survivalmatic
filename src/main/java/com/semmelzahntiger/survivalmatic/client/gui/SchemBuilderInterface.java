@@ -1,6 +1,6 @@
-package com.example.examplemod.client.gui;
+package com.semmelzahntiger.survivalmatic.client.gui;
 
-import com.example.examplemod.client.gui.widgets.ScrollableDropDownList;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;

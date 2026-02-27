@@ -1,6 +1,6 @@
-package com.example.examplemod.common.blockentities;
+package com.semmelzahntiger.survivalmatic.common.blockentities;
 
-import com.example.examplemod.common.schem.SchematicReader;
+import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
