@@ -5,6 +5,7 @@ import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -25,15 +26,16 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class SchemBuilderBlockEntity extends BlockEntity {
+    // Todo: Implement Config Settings for Batch Sizes
     private static final int ITEM_SCAN_BATCH_SIZE = 40;
     private static final int BUILD_BATCH_SIZE = 40;
 
     public enum SCHEM_BUILDER_STATE {
         IDLE,
-        SCANNING_READ,
-        SCANNING_BUILD,
+        SCANNING,
+        PREPARING,
         BUILDING,
-        WAITING_FOR_MISSING
+        DUMPING
     }
     private SCHEM_BUILDER_STATE currentState = SCHEM_BUILDER_STATE.IDLE;
     private List<MaterialSource> materialSources = new ArrayList<>();
@@ -74,57 +76,60 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void removeSource(BlockPos pos, IItemHandler source) {
         materialSources.remove(new MaterialSource(pos, source));
     }
+
+    /**
+     * Evaluate if the MaterialSources are still valid
+     * If only slotcount changed, revalidate MaterialSource
+     */
     public void validateSources() {
+        List<MaterialSource> newSources = new ArrayList<>();
         materialSources.removeIf(source -> {
             BlockEntity be = this.level.getBlockEntity(source.getPos());
-            return be == null || !(be.getCapability(ForgeCapabilities.ITEM_HANDLER) instanceof IItemHandler);
+            if(be == null) return true;
+            IItemHandler handler = be.getCapability(ForgeCapabilities.ITEM_HANDLER).resolve().orElse(null);
+            if(handler == null) return true;
+            // Revalidate MaterialSource if the block still has an IItemHandler Capability
+            newSources.add(new MaterialSource(source.getPos(), handler));
+            return handler.getSlots() != source.getSlotCount();
         });
+        materialSources.addAll(newSources);
     }
     public void tick() {
-        switch (currentState) {
-            case SCANNING_READ -> {
-                currentScan.tickScan();
-                if(currentScan.finishedScanning) {
-                    currentState = SCHEM_BUILDER_STATE.IDLE;
-                    hasRequiredItems = isScanAccumulatedSufficient(currentScan.accumulatedItems);
-                }
-            }
-            case SCANNING_BUILD -> {
-                currentScan.tickScan();
-                if(currentScan.finishedScanning) {
-                    materialBuffer.putAll(currentScan.getAccumulatedItems());
-                    if(!isMaterialBufferSufficient()) {
-                        hasRequiredItems = false;
-                        missingItems = calculateMissingItems();
-                    }
-                    else {
-                        hasRequiredItems = true;
-                        currentState = SCHEM_BUILDER_STATE.BUILDING;
-                    }
-                }
-            }
-            case BUILDING -> {
 
-            }
-        }
         // Todo: Synchronize Data with Client
         //PacketDistributor.TRACKING_CHUNK.with(() -> level.getChunkAt(this.getBlockPos())).send();
     }
-    public void beginScanning(boolean buildScan) {
+    // Read and Prepare Scan
+    public void beginScanning(boolean extractScan) {
+        validateSources();
+        // Convert MaterialSources to ScanInstances for batched scanning
         List<SourceScanInstance> scanInstances = materialSources.stream().map(source -> new SourceScanInstance(source.slotCount, source.pos)).toList();
         Queue<SourceScanInstance> materialSourceQueue = new LinkedList<>(scanInstances);
-        currentScan = new Scan(materialSourceQueue, instance.requiredItems, buildScan);
+        // If a buildscan is run, schematic cant be changed until cancellation
+        if(extractScan) {
+            schematicLocked = true;
+        }
+        // Only scan for missing items in Buffer
+        calculateMissingItems();
+        // Instantiate new Scan
+        currentScan = new Scan(materialSourceQueue, missingItems, extractScan);
         currentScan.beginScan();
-        currentState = buildScan ? SCHEM_BUILDER_STATE.SCANNING_BUILD :SCHEM_BUILDER_STATE.SCANNING_READ;
+        currentState = extractScan ? SCHEM_BUILDER_STATE.PREPARING : SCHEM_BUILDER_STATE.SCANNING;
     }
-    private HashMap<Item, Integer> calculateMissingItems() {
-        HashMap<Item, Integer> missingItems = new HashMap<>(instance.requiredItems);
+    public void startBuilding() {
+
+    }
+    public void cancel() {
+
+    }
+    // Todo: Only recalculate if MaterialBuffer has changed
+    private void calculateMissingItems() {
+        missingItems = new HashMap<>(instance.requiredItems);
         materialBuffer.forEach((item, amount) -> {
             if(missingItems.containsKey(item)) {
                 missingItems.put(item, missingItems.get(item) - amount);
             }
         });
-        return missingItems;
     }
     private boolean isMaterialBufferSufficient() {
         return isScanAccumulatedSufficient(materialBuffer);
@@ -143,6 +148,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         }
         return sufficient;
     }
+
 
 
     private static class MaterialSource {
@@ -268,5 +274,32 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             return be.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
         }
 
+    }
+    private class BuildInstance {
+        private int trackedWidth;
+        private int trackedLength;
+        private int trackedHeight;
+        final SchematicReader.SchematicInstance instance;
+
+        private BuildInstance(SchematicReader.SchematicInstance instance) {
+            this.instance = instance;
+        }
+        public void build(ServerLevel level) {
+            int remainingBatchCount = BUILD_BATCH_SIZE;
+            batch:
+            for (int y = trackedHeight; y < instance.height; y++) {
+                trackedHeight = y;
+                for (int x = trackedWidth; x < instance.width; x++) {
+                    trackedWidth = x;
+                    for (int z = trackedLength; z < instance.length; z++) {
+                        trackedLength = z;
+                        level.setBlock(new BlockPos(x,y,z), instance.getBlockState(x,y,z),0);
+                        // If batchCount is exhausted, continue building in the next tick
+                        if(--remainingBatchCount == 0) break batch;
+                    }
+                }
+            }
+            // Todo: Signal when finished building
+        }
     }
 }

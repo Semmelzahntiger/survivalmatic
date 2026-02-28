@@ -121,5 +121,8 @@ public class SchematicReader {
             int paletteId = blockData[index];
             return palette.getOrDefault(paletteId, Blocks.AIR.defaultBlockState());
         }
+        public int[] getBlockData() {
+            return blockData;
+        }
     }
 }
