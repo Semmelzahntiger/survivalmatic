@@ -13,7 +13,7 @@ import net.minecraft.util.Mth;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.semmelzahntiger.survivalmatic.ExampleMod.MODID;
+import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class ScrollableDropDownList extends AbstractWidget {
     private static final ResourceLocation ENTRY_TEXTURE = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/list_entry.png");
