@@ -6,12 +6,15 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Mod(ExampleMod.MODID)
-public class ExampleMod
+@Mod(Survivalmatic.MODID)
+public class Survivalmatic
 {
+    public static final Logger LOGGER = LoggerFactory.getLogger(Survivalmatic.class);
     public static final String MODID = "survivalmatic";
-    public ExampleMod(FMLJavaModLoadingContext context)
+    public Survivalmatic(FMLJavaModLoadingContext context)
     {
         IEventBus modEventBus = context.getModEventBus();
         MinecraftForge.EVENT_BUS.register(this);
