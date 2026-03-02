@@ -104,7 +104,6 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void removeSource(BlockPos pos, IItemHandler source) {
         materialSources.remove(new MaterialSource(pos, source));
     }
-
     /**
      * Evaluate if the MaterialSources are still valid
      * If only slotcount changed, revalidate MaterialSource
@@ -195,22 +194,20 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         }
     }
 
-    public void cancel(boolean deleteDumpBuffer) {
-        isComitted = false;
-        // Branch allows to destroy already queued DumpBuffer, does not work while build is running, only in Dumping State
-        if(currentState == SCHEM_BUILDER_STATE.DUMPING && deleteDumpBuffer) {
-            dumpBuffer.clear();
+    public void cancelBuild() {
+        if(currentState == SCHEM_BUILDER_STATE.IDLE || currentState == SCHEM_BUILDER_STATE.DUMPING) {
+            return;
         }
-        // Cancellation for scenario: build is ongoing, but you want to cancel it
-        else {
+        isComitted = false;
+        if(currentState == SCHEM_BUILDER_STATE.BUILDING) {
             buildInstance.setCanceled();
             dumpBuffer.putAll(materialBuffer);
             materialBuffer.clear();
         }
-        currentState = deleteDumpBuffer ?  SCHEM_BUILDER_STATE.IDLE : SCHEM_BUILDER_STATE.DUMPING;
+        currentState = SCHEM_BUILDER_STATE.DUMPING;
     }
-    public void cancelBuild() {
-
+    public void clearDumpBuffer() {
+        dumpBuffer.clear();
     }
     public void dump() {
         BlockEntity dumpEntity = this.getLevel().getBlockEntity(this.getBlockPos().relative(dumpDirection));
