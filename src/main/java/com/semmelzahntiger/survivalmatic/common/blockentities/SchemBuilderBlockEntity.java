@@ -209,6 +209,9 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         }
         currentState = deleteDumpBuffer ?  SCHEM_BUILDER_STATE.IDLE : SCHEM_BUILDER_STATE.DUMPING;
     }
+    public void cancelBuild() {
+
+    }
     public void dump() {
         BlockEntity dumpEntity = this.getLevel().getBlockEntity(this.getBlockPos().relative(dumpDirection));
         if(dumpEntity != null) {
