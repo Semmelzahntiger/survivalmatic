@@ -1,6 +1,7 @@
 package com.semmelzahntiger.survivalmatic.common.blockentities;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
+import com.semmelzahntiger.survivalmatic.common.registries.Registry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -8,9 +9,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEventListener;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 
@@ -19,7 +22,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-
+// Why am I realizing after pulling an all-nighter that I DIDNT cook with this.
+// What even is that sorry ass approach???
+// Forge/MC provides literally everything I need for this and I decide to do this?
+// I'm literally gonna commit this so if maybe someone sees this they know what kind of bullshit ive been cooking. Actually embarrassing.
 public class SchemBuilderBlockEntity extends BlockEntity {
     // Todo: Implement Config Settings for Batch Sizes
     private static final int ITEM_SCAN_BATCH_SIZE = 40;
@@ -81,8 +87,8 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private boolean ignoresAirInSchematic = false;
 
 
-    public SchemBuilderBlockEntity(BlockEntityType<?> pType, BlockPos pPos, BlockState pBlockState) {
-        super(pType, pPos, pBlockState);
+    public SchemBuilderBlockEntity( BlockPos pPos, BlockState pBlockState) {
+        super(Registry.SCHEM_BUILDER_BE.get(), pPos, pBlockState);
     }
     public void setSchematic(String schematicName) {
         if(!this.getLevel().isClientSide()) {
@@ -121,7 +127,11 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         });
         materialSources.addAll(newSources);
     }
-    public void tick() {
+    public static <T extends BlockEntity> void ticker(Level level, BlockPos pos, BlockState state, T entity) {
+        SchemBuilderBlockEntity castEntity = (SchemBuilderBlockEntity) entity;
+        castEntity.tick(level, pos, state);
+    }
+    public void tick(Level level, BlockPos pos, BlockState state) {
         currentState = switch (currentState) {
             case IDLE, IDLE_LOCKED, READY -> currentState;
             case SCANNING, PREPARATION_SCAN -> {
