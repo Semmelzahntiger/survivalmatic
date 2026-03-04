@@ -124,5 +124,11 @@ public class SchematicReader {
         public int[] getBlockData() {
             return blockData;
         }
+        public Map<Item, Integer> getRequiredItems() {
+            return requiredItems;
+        }
+        public Map<Item, Integer> getRequiredItemsCopy() {
+            return Map.copyOf(requiredItems);
+        }
     }
 }
