@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic;
 
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindEventHandler;
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindInteractionHandler;
+import com.semmelzahntiger.survivalmatic.common.events.CapabilityRegistry;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -20,5 +21,6 @@ public class Survivalmatic
         MinecraftForge.EVENT_BUS.register(this);
         modEventBus.register(KeyBindEventHandler.class);
         MinecraftForge.EVENT_BUS.register(KeyBindInteractionHandler.class);
+        MinecraftForge.EVENT_BUS.register(CapabilityRegistry.class);
     }
 }
