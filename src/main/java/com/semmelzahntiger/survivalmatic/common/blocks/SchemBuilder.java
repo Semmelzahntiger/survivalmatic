@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import org.jetbrains.annotations.Nullable;
 
 public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBlock {
@@ -40,7 +41,7 @@ public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBl
 
     @Override
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> type) {
-        return type == Registry.SCHEM_BUILDER_BE.get() ? SchemBuilderBlockEntity::ticker : null;
+        return type == Registry.SCHEM_BUILDER_BE.get() ? SchemBuilderBlockEntity::tick : null;
     }
 
 }
