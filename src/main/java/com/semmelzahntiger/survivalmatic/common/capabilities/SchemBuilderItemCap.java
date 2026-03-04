@@ -2,7 +2,6 @@ package com.semmelzahntiger.survivalmatic.common.capabilities;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
-import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
@@ -20,7 +19,7 @@ public class SchemBuilderItemCap implements IItemHandler {
         this.schemBuilder = schemBuilder;
     }
     private void validateDumpCache() {
-            if(cachedDumpItems == null || schemBuilder.dumpBufferChanged()) {
+            if(cachedDumpItems == null || schemBuilder.hasDumpBufferChanged()) {
                 cachedDumpItems = schemBuilder.getDumpBuffer().keySet().stream().toList();
                 schemBuilder.confirmDumpBufferChanged();
             }
