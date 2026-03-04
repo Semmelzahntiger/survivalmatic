@@ -1,7 +1,8 @@
 package com.semmelzahntiger.survivalmatic.common.network;
 
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.SchemBuilderGUIButtonInteract;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SyncSchemBuilderPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -18,13 +19,11 @@ public class ModNetwork {
             PROTOCOL_VERSION::equals
     );
     static {
-        INSTANCE.registerMessage(ID++, SyncSchemBuilderPacket.class,
-                (packet, encodeByteBuf) -> {
-                    encodeByteBuf.writeInt(packet.getState());
-                },
+        INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class,
+                (packet, encodeByteBuf) -> encodeByteBuf.writeInt(packet.getState()),
                 decodeByteBuf -> {
                     int state = decodeByteBuf.readInt();
-                    return new SyncSchemBuilderPacket(state);
+                    return new SchemBuilderStatePacket(state);
                 },
                 (decodedPacket, ctx) -> {
 
@@ -37,7 +36,11 @@ public class ModNetwork {
                     return new SchemBuilderGUIButtonInteract(id);
                 },
                 (decodedPacket, ctx) -> {
-
         });
+        INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class,
+                SchemBuilderItemBufferPacket::encode,
+                SchemBuilderItemBufferPacket::decode,
+                SchemBuilderItemBufferPacket::handle);
+
     }
 }
