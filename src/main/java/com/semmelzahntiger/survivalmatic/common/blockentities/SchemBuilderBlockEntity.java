@@ -2,6 +2,9 @@ package com.semmelzahntiger.survivalmatic.common.blockentities;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap;
+import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
 import com.semmelzahntiger.survivalmatic.common.registries.Registry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
@@ -10,14 +13,16 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.stringtemplate.v4.ST;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,11 +35,18 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public static final int BUILD_BATCH_SIZE = 40;
 
     public enum STATE {
-        IDLE,
-        SCHEMATIC_LOCKED,
-        READY,
-        BUILDING,
-        DUMPING
+        IDLE(0),
+        SCHEMATIC_LOCKED(1),
+        READY(2),
+        BUILDING(3),
+        DUMPING(4);
+        private final int id;
+        STATE(int id) {
+            this.id = id;
+        }
+        public int getId() {
+            return id;
+        }
     }
     private STATE state = STATE.IDLE;
     private final HashMap<Item,Integer> materialBuffer = new HashMap<>();
@@ -47,6 +59,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private BuildInstance buildInstance = null;
     private boolean placesAir = false;
     private boolean preserveExcavation = false;
+    private Vec3 offset = Vec3.ZERO;
 
     private String displayMessage = "Select Schematic...";
 
@@ -94,11 +107,33 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public boolean preservesExcavation() {
         return preserveExcavation;
     }
-    public boolean dumpBufferChanged() {
+    private void dumpBufferChanged() {
+        dumpBufferChanged = true;
+    }
+    public boolean hasDumpBufferChanged() {
         return dumpBufferChanged;
     }
     public void confirmDumpBufferChanged() {
         dumpBufferChanged = false;
+    }
+    public void setOffset(Vec3 offset) {
+        this.offset = offset;
+    }
+    public int cancel() {
+        if(state == STATE.BUILDING && buildInstance != null) {
+            buildInstance.setCanceled();
+            return 0;
+        }
+        else if(state == STATE.SCHEMATIC_LOCKED || state == STATE.READY) {
+            dump();
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    }
+    public void clearDumpBuffer() {
+        dumpBuffer.clear();
     }
     public SchematicReader.SchematicInstance getSchematicInstance() {
         return schematicInstance;
@@ -144,8 +179,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                     yield STATE.IDLE;
                 }
                 if(buildInstance.isCanceled() || buildInstance.isFinished()) {
-                    dumpBuffer.putAll(materialBuffer);
-                    materialBuffer.clear();
+                    dump();
                     buildInstance = null;
                     yield STATE.DUMPING;
                 }
@@ -159,7 +193,15 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         syncWithClients();
     }
     private void syncWithClients() {
-
+        // Only sync Items in relevant Sections
+        switch (state) {
+            case SCHEMATIC_LOCKED, DUMPING, READY -> {
+                SchemBuilderItemBufferPacket itemBufferPacket = new SchemBuilderItemBufferPacket(materialBuffer, dumpBuffer);
+                ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), itemBufferPacket);
+            }
+        }
+        SchemBuilderStatePacket packet = new SchemBuilderStatePacket(state.getId());
+        ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), packet);
     }
     public int startBuilding() {
         if(state != STATE.READY) {
@@ -177,6 +219,11 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         }
         buildInstance.setCanceled();
         return 0;
+    }
+    private void dump() {
+        dumpBuffer.putAll(materialBuffer);
+        dumpBufferChanged();
+        materialBuffer.clear();
     }
     private class BuildInstance {
         private int trackedWidth;
