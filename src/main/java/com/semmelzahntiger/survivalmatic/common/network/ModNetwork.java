@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.network;
 
+import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.SchemBuilderGUIButtonInteract;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
@@ -26,7 +27,8 @@ public class ModNetwork {
                     return new SchemBuilderStatePacket(state);
                 },
                 (decodedPacket, ctx) -> {
-
+                    SchemBuilderInterfaceData.getINSTANCE().setState(decodedPacket.getState());
+                    ctx.get().setPacketHandled(true);
         });
         INSTANCE.registerMessage(ID++, SchemBuilderGUIButtonInteract.class,(packet, encodeByteBuf) -> {
                     encodeByteBuf.writeInt(packet.getInteractionID());
@@ -36,6 +38,10 @@ public class ModNetwork {
                     return new SchemBuilderGUIButtonInteract(id);
                 },
                 (decodedPacket, ctx) -> {
+            ctx.get().enqueueWork(() -> {
+
+            });
+            ctx.get().setPacketHandled(true);
         });
         INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class,
                 SchemBuilderItemBufferPacket::encode,

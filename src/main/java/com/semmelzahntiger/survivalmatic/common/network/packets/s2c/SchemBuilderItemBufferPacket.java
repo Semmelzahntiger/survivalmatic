@@ -1,6 +1,7 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.s2c;
 
 
+import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.Item;
@@ -44,6 +45,7 @@ public class SchemBuilderItemBufferPacket {
         return new SchemBuilderItemBufferPacket(materialBufferItems, dumpBufferItems);
     }
     public static void handle(SchemBuilderItemBufferPacket packet, Supplier<NetworkEvent.Context> ctx) {
-
+        ctx.get().enqueueWork(() -> SchemBuilderInterfaceData.getINSTANCE().computeItemPacket(packet));
+        ctx.get().setPacketHandled(true);
     }
 }
