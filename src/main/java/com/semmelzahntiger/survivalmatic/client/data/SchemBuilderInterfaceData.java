@@ -5,12 +5,15 @@ import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @OnlyIn(Dist.CLIENT)
 public class SchemBuilderInterfaceData {
     private int state = 0;
+    private String displayMessage = "";
     public Map<Item, Integer> materialBufferItems = new HashMap<>();
     public Map<Item, Integer> dumpBufferItems = new HashMap<>();
     private static final SchemBuilderInterfaceData INSTANCE = new SchemBuilderInterfaceData();
@@ -24,5 +27,14 @@ public class SchemBuilderInterfaceData {
     }
     public void setState(int state) {
         this.state = state;
+    }
+    public int getState() {
+        return state;
+    }
+    public void setDisplayMessage(String displayMessage) {
+        this.displayMessage = displayMessage;
+    }
+    public String getDisplayMessage() {
+        return displayMessage;
     }
 }

@@ -21,8 +21,13 @@ public class SchemBuilderInterface extends Screen {
         dropDownList.addTextEntry(Component.literal("Test 3"));
         dropDownList.addTextEntry(Component.literal("Test 4"));
         dropDownList.addTextEntry(Component.literal("Test 5"));
-
         addRenderableWidget(dropDownList);
+
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
     }
 
     @Override

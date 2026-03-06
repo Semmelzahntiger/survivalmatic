@@ -21,13 +21,18 @@ public class ModNetwork {
     );
     static {
         INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class,
-                (packet, encodeByteBuf) -> encodeByteBuf.writeInt(packet.getState()),
+                (packet, encodeByteBuf) -> {
+            encodeByteBuf.writeInt(packet.getState());
+            encodeByteBuf.writeUtf(packet.getMessage());
+                },
                 decodeByteBuf -> {
                     int state = decodeByteBuf.readInt();
-                    return new SchemBuilderStatePacket(state);
+                    String message = decodeByteBuf.readUtf();
+                    return new SchemBuilderStatePacket(state, message);
                 },
                 (decodedPacket, ctx) -> {
                     SchemBuilderInterfaceData.getINSTANCE().setState(decodedPacket.getState());
+                    SchemBuilderInterfaceData.getINSTANCE().setDisplayMessage(decodedPacket.getMessage());
                     ctx.get().setPacketHandled(true);
         });
         INSTANCE.registerMessage(ID++, SchemBuilderGUIButtonInteract.class,(packet, encodeByteBuf) -> {

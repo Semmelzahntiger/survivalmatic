@@ -1,6 +1,5 @@
 package com.semmelzahntiger.survivalmatic.common.blockentities;
 
-import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
@@ -9,7 +8,6 @@ import com.semmelzahntiger.survivalmatic.common.registries.Registry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -22,12 +20,7 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.stringtemplate.v4.ST;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,7 +47,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private final HashMap<Item, Integer> dumpBuffer = new HashMap<>();
     private boolean dumpBufferChanged = false;
 
-    private SchematicReader.SchematicInstance schematicInstance = null;
+    private SchematicReader.ServerSchematicInstance serverSchematicInstance = null;
 
     private BuildInstance buildInstance = null;
     private boolean placesAir = false;
@@ -135,22 +128,17 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void clearDumpBuffer() {
         dumpBuffer.clear();
     }
-    public SchematicReader.SchematicInstance getSchematicInstance() {
-        return schematicInstance;
+    public SchematicReader.ServerSchematicInstance getSchematicInstance() {
+        return serverSchematicInstance;
     }
-    public void setSchematicInstance(String schematicName) {
-        if(!this.getLevel().isClientSide()) {
-            try {
-                MinecraftServer server = this.getLevel().getServer();
-                Path path = Path.of(server.getServerDirectory().getPath() + "/schematics/" + schematicName + ".schem");
-                if(Files.exists(path)) {
-                    File file = new File(path.toUri());
-                    schematicInstance = SchematicReader.getSchematicInstance(file , server);
-                }
-            } catch (IOException e) {
-                Survivalmatic.LOGGER.error("Schematic '{}' not found or invalid", schematicName);
-            }
-        }
+    public void setSchematicInstance(SchematicReader.ServerSchematicInstance serverSchematicInstance) {
+        this.serverSchematicInstance = serverSchematicInstance;
+    }
+    public void setDisplayMessage(String displayMessage) {
+        this.displayMessage = displayMessage;
+    }
+    public String getDisplayMessage() {
+        return displayMessage;
     }
     public static <T extends BlockEntity> void tick(Level level, BlockPos pos, BlockState state, T Entity) {
         SchemBuilderBlockEntity schemBuilderBlockEntity = (SchemBuilderBlockEntity) Entity;
@@ -160,9 +148,9 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         this.state = switch (state) {
             case IDLE, READY -> this.state;
             case SCHEMATIC_LOCKED -> {
-                if(schematicInstance != null) {
+                if(serverSchematicInstance != null) {
                     boolean enoughResource = true;
-                    for (Map.Entry<Item, Integer> entry : schematicInstance.requiredItems.entrySet()) {
+                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems.entrySet()) {
                         Item item = entry.getKey();
                         int minAmount = entry.getValue();
                         if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
@@ -200,7 +188,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                 ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), itemBufferPacket);
             }
         }
-        SchemBuilderStatePacket packet = new SchemBuilderStatePacket(state.getId());
+        SchemBuilderStatePacket packet = new SchemBuilderStatePacket(state.getId(), getDisplayMessage());
         ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), packet);
     }
     public int startBuilding() {
@@ -208,7 +196,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             return 1;
         }
 
-        buildInstance = new BuildInstance(schematicInstance);
+        buildInstance = new BuildInstance(serverSchematicInstance);
         state = STATE.BUILDING;
 
         return 0;
@@ -232,12 +220,12 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
         private final int LAST_INDEX;
         private int currentIndex = 1;
-        final SchematicReader.SchematicInstance instance;
+        final SchematicReader.ServerSchematicInstance instance;
 
         private boolean isCanceled = false;
         private boolean isPaused = false;
 
-        private BuildInstance(SchematicReader.SchematicInstance instance) {
+        private BuildInstance(SchematicReader.ServerSchematicInstance instance) {
             this.instance = instance;
             LAST_INDEX = instance.height * instance.width * instance.length;
         }
