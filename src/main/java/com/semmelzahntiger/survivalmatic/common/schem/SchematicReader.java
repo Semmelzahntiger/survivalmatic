@@ -1,19 +1,14 @@
 package com.semmelzahntiger.survivalmatic.common.schem;
 
-import com.google.common.primitives.Bytes;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
@@ -24,13 +19,15 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Todo: Documentation
  */
 public class SchematicReader {
     @OnlyIn(Dist.CLIENT)
-    public static ClientInstance getClientSchematicInstance(File file, MinecraftServer server) throws IOException {
+    public static Optional<ClientInstance> getClientSchematicInstance(File file) throws IOException {
         CompoundTag schematicData = NbtIo.readCompressed(file);
         int version = schematicData.getInt("Version");
         // Version 2 Parser
@@ -46,15 +43,13 @@ public class SchematicReader {
             short length = schematicData.getShort("Length");
 
             CompoundTag paletteTag = schematicData.getCompound("Palette");
-            // byte array from the schematic
             byte[] blockDataBytes = schematicData.getByteArray("BlockData");
-            HolderLookup<Block> blockRegistry = server.registryAccess().lookupOrThrow(Registries.BLOCK);
             // Holds BlockState for each ID in the Schematic (Inversed CompoundTag)
             HashMap<Integer, String> paletteMap = new HashMap<>();
             for (String key : paletteTag.getAllKeys()) {
                 paletteMap.put(paletteTag.getInt(key), key);
             }
-            return new ClientInstance(width, height, length, weOffset, blockDataBytes, paletteMap);
+            return Optional.of(new ClientInstance(width, height, length, weOffset, blockDataBytes, paletteMap));
         }
         else if (version == 3) {
             CompoundTag blockTag = schematicData.getCompound("Blocks");
@@ -65,26 +60,53 @@ public class SchematicReader {
             short width = schematicData.getShort("Width");
             int[] offsets = schematicData.getIntArray("Offset");
             BlockPos offset = new BlockPos(offsets[0], offsets[1], offsets[2]);
-
             HashMap<Integer, String> paletteMap = new HashMap<>();
             for (String key : palette.getAllKeys()) {
                 paletteMap.put(palette.getInt(key), key);
             }
-            return new ClientInstance(length, height, width, offset, blockDataBytes, paletteMap);
+            return Optional.of(new ClientInstance(length, height, width, offset, blockDataBytes, paletteMap));
         }
         else {
-            return null;
+            return Optional.empty();
         }
     }
     @OnlyIn(Dist.CLIENT)
-    public record ClientInstance(short length, short height, short width, BlockPos offset, byte[] blockData, HashMap<Integer, String> palleteMap) {}
-
+    public static CompletableFuture<Optional<ClientInstance>> getClientSchematicInstanceAsync(File file) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return getClientSchematicInstance(file);
+            } catch (IOException e) {
+                Survivalmatic.LOGGER.error("Couldn't load schematic from disk", e);
+                return Optional.empty();
+            }
+        });
+    }
+    @OnlyIn(Dist.CLIENT)
+    public static class ClientInstance {
+        public final short length;
+        public final short height;
+        public final short width;
+        public final BlockPos offset;
+        public final int byteCount;
+        public final byte[] blockData;
+        public final int paletteSize;
+        public final HashMap<Integer, String> paletteMap;
+        public ClientInstance(short length, short height, short width, BlockPos offset, byte[] blockData, HashMap<Integer, String> palleteMap) {
+            this.length = length;
+            this.height = height;
+            this.width = width;
+            this.offset = offset;
+            this.byteCount = blockData.length;
+            this.blockData = blockData;
+            this.paletteSize = palleteMap.size();
+            this.paletteMap = palleteMap;
+        }
+    }
     public static class ServerSchematicInstance {
         public final int width;
         public final int height;
         public final int length;
         public final Map<Item, Integer> requiredItems;
-
         private final int[] blockData;
         private final Map<Integer, BlockState> palette;
 
@@ -114,7 +136,7 @@ public class SchematicReader {
         public Map<Item, Integer> getRequiredItemsCopy() {
             return Map.copyOf(requiredItems);
         }
-        public static ServerSchematicInstance createFromBuilder(SchematicReconstructor.SchematicBuilder builder, MinecraftServer server) {
+        public static ServerSchematicInstance createFromBuilder(ServerSchematicHandler.SchematicBuilder builder, MinecraftServer server) {
             HashMap<Item, Integer> requiredItems = new HashMap<>();
             HashMap<Integer, Item> paletteItems = new HashMap<>();
             List<Byte> blockData = builder.getBytes();
@@ -138,7 +160,6 @@ public class SchematicReader {
 
             int totalSize = builder.getWidth() * builder.getHeight() * builder.getLength();
             int[] blockDataIntegers = new int[totalSize];
-            // Calculate Integer based off the schematics byte array
             int byteIndex = 0;
             for (int i = 0; i < totalSize; i++) {
                 boolean lastByte;
