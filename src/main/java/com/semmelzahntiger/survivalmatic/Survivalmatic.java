@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic;
 
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindEventHandler;
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindInteractionHandler;
+import com.semmelzahntiger.survivalmatic.client.schem.ServerPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.events.CapabilityRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.ServerSchemEventHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -21,11 +22,12 @@ public class Survivalmatic
     public Survivalmatic(FMLJavaModLoadingContext context)
     {
         IEventBus modEventBus = context.getModEventBus();
-        MinecraftForge.EVENT_BUS.register(this);
+        IEventBus forgeEventBus = MinecraftForge.EVENT_BUS;
+        forgeEventBus.register(this);
         modEventBus.register(KeyBindEventHandler.class);
-        MinecraftForge.EVENT_BUS.register(KeyBindInteractionHandler.class);
-        MinecraftForge.EVENT_BUS.register(CapabilityRegistry.class);
-        MinecraftForge.EVENT_BUS.register(ServerSchemEventHandler.class);
+        forgeEventBus.register(KeyBindInteractionHandler.class);
+        forgeEventBus.register(CapabilityRegistry.class);
+        forgeEventBus.register(ServerSchemEventHandler.class);
         LOGGER.info("Ahleleleleahlelas: " + (Ahleleleleahlelas-21));
     }
 }

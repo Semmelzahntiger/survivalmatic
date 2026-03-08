@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic.common.network;
 
 import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.SchemBuilderGUIButtonInteract;
+import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicHeaderPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
 import net.minecraft.resources.ResourceLocation;
@@ -19,11 +20,31 @@ public class ModNetwork {
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
     );
-    static {
+    public static void clientMessages() {
+        INSTANCE.registerMessage(ID++, SchemBuilderGUIButtonInteract.class,(packet, encodeByteBuf) -> {
+                    encodeByteBuf.writeInt(packet.getInteractionID());
+                },
+                decodeByteBuf -> {
+                    int id = decodeByteBuf.readInt();
+                    return new SchemBuilderGUIButtonInteract(id);
+                },
+                (decodedPacket, ctx) -> {
+                    ctx.get().enqueueWork(() -> {
+
+                    });
+                    ctx.get().setPacketHandled(true);
+                });
+
+        INSTANCE.registerMessage(ID++, SchematicHeaderPacket.class,
+            SchematicHeaderPacket::encode,
+            SchematicHeaderPacket::decode,
+            SchematicHeaderPacket::handle);
+    }
+    public static void serverMessages() {
         INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class,
                 (packet, encodeByteBuf) -> {
-            encodeByteBuf.writeInt(packet.getState());
-            encodeByteBuf.writeUtf(packet.getMessage());
+                    encodeByteBuf.writeInt(packet.getState());
+                    encodeByteBuf.writeUtf(packet.getMessage());
                 },
                 decodeByteBuf -> {
                     int state = decodeByteBuf.readInt();
@@ -34,24 +55,14 @@ public class ModNetwork {
                     SchemBuilderInterfaceData.getINSTANCE().setState(decodedPacket.getState());
                     SchemBuilderInterfaceData.getINSTANCE().setDisplayMessage(decodedPacket.getMessage());
                     ctx.get().setPacketHandled(true);
-        });
-        INSTANCE.registerMessage(ID++, SchemBuilderGUIButtonInteract.class,(packet, encodeByteBuf) -> {
-                    encodeByteBuf.writeInt(packet.getInteractionID());
-                },
-                decodeByteBuf -> {
-                    int id = decodeByteBuf.readInt();
-                    return new SchemBuilderGUIButtonInteract(id);
-                },
-                (decodedPacket, ctx) -> {
-            ctx.get().enqueueWork(() -> {
-
-            });
-            ctx.get().setPacketHandled(true);
-        });
+                });
         INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class,
                 SchemBuilderItemBufferPacket::encode,
                 SchemBuilderItemBufferPacket::decode,
                 SchemBuilderItemBufferPacket::handle);
-
+    }
+    static {
+        clientMessages();
+        serverMessages();
     }
 }

@@ -83,6 +83,7 @@ public class SchematicReader {
     }
     @OnlyIn(Dist.CLIENT)
     public static class ClientInstance {
+        public final String name;
         public final short length;
         public final short height;
         public final short width;
@@ -91,7 +92,8 @@ public class SchematicReader {
         public final byte[] blockData;
         public final int paletteSize;
         public final HashMap<Integer, String> paletteMap;
-        public ClientInstance(short length, short height, short width, BlockPos offset, byte[] blockData, HashMap<Integer, String> palleteMap) {
+        public ClientInstance(String name, short length, short height, short width, BlockPos offset, byte[] blockData, HashMap<Integer, String> palleteMap) {
+            this.name = name;
             this.length = length;
             this.height = height;
             this.width = width;

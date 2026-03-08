@@ -1,23 +1,38 @@
 package com.semmelzahntiger.survivalmatic.client.schem;
 
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
-import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schem.SchematicBytePacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schem.SchematicHeaderPacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schem.SchematicPalletePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicBytePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicHeaderPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicPalettePacket;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
+import net.minecraft.core.BlockPos;
 import net.minecraft.util.Tuple;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-import javax.print.DocFlavor;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
+import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
+
 @OnlyIn(Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ServerPayloadManager {
     public static final ServerPayloadManager INSTANCE = new ServerPayloadManager();
+    private final HashMap<UUID, Tuple<SchematicReader.ClientInstance,CompletableFuture<Boolean>>> pendingRequests = new HashMap<>();
     private final HashMap<UUID, SchematicServerPayload> payloads = new HashMap<>();
     private final HashMap<UUID, CompletableFuture<Boolean>> payloadResponses = new HashMap<>();
+
+    @SubscribeEvent
+    public static void tickEvent(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            ServerPayloadManager.INSTANCE.tick();
+        }
+    }
 
     public void tick() {
         Iterator<Map.Entry<UUID, SchematicServerPayload>> iter = payloads.entrySet().iterator();
@@ -32,26 +47,48 @@ public class ServerPayloadManager {
             }
         }
     }
-    public Tuple<UUID, CompletableFuture<Boolean>> addPayloadAsync(SchematicReader.ClientInstance instance) {
+
+    /**
+     *
+     * @param instance currently loaded instance
+     * @param blockEntityPos Position of blockEntity
+     * @return {@link CompletableFuture<Boolean>} containing the Result if the Server accepted the Request
+     */
+    public Tuple<SchematicReader.ClientInstance,CompletableFuture<Boolean>> newRequest(SchematicReader.ClientInstance instance, BlockPos blockEntityPos) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        UUID id = UUID.randomUUID();
+        UUID requestUUID = UUID.randomUUID();
+        pendingRequests.put(requestUUID,new Tuple<>(instance,future));
+        ModNetwork.INSTANCE.sendToServer(new SchematicHeaderPacket(requestUUID, instance.paletteSize, instance.byteCount,instance.name, new short[] {instance.length, instance.height, instance.width }, blockEntityPos));
+        return new Tuple<>(instance, future);
+    }
+    public Tuple<UUID, CompletableFuture<Boolean>> addPayloadAsync(UUID id, SchematicReader.ClientInstance instance) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
         HashMap<Integer, String> palette = instance.paletteMap;
         int[] paletteIDs = palette.keySet().stream().mapToInt(i -> i).toArray();
         String[] paletteBlockStates = palette.values().toArray(new String[0]);
-        SchematicServerPayload payload = new SchematicServerPayload(id, instance.name, instance.byteCount, instance.blockData, instance.paletteSize, paletteIDs, paletteBlockStates);
+        SchematicServerPayload payload = new SchematicServerPayload(id, instance.byteCount, instance.blockData, instance.paletteSize, paletteIDs, paletteBlockStates);
         payloads.put(id, payload);
         payloadResponses.put(id, future);
         return new Tuple<>(id, future);
     }
+    private Optional<CompletableFuture<Boolean>> getPendingRequest(UUID id) {
+        return Optional.of(pendingRequests.get(id).getB());
+    }
     private Optional<CompletableFuture<Boolean>> getPayloadResponse(UUID id) {
         return Optional.ofNullable(payloadResponses.get(id));
     }
-    public void computeResponse(UUID requestID, boolean response) {
+    public void computeRequestResponse(UUID id) {
+        getPendingRequest(id).ifPresent(future -> future.complete(true));
+    }
+    public void computePayloadResponse(UUID requestID, boolean response) {
         getPayloadResponse(requestID).ifPresent(future -> future.complete(response));
+    }
+    public void cancelRequest(UUID requestID) {
+        payloads.remove(requestID);
+        getPayloadResponse(requestID).ifPresent(future -> future.completeExceptionally(new CancellationException()));
     }
     public static class SchematicServerPayload {
         public enum PAYLOAD_STATE {
-            SENDING_HEADER,
             SENDING_BYTES,
             SENDING_PALETTE,
             COMPLETED
@@ -63,7 +100,6 @@ public class ServerPayloadManager {
         public static final int MAX_PALETTE_BYTES_SENDABLE = 500000;
 
         public final UUID uuid;
-        public final String name;
         public final int byteCount;
         public final byte[] data;
         public final int paletteSize;
@@ -74,9 +110,8 @@ public class ServerPayloadManager {
         public int lastSentPaletteIndex = 0;
 
 
-        public SchematicServerPayload(UUID uuid, String name, int byteCount, byte[] data, int paletteSize, int[] paletteIDs, String[] paletteBlockStates) {
+        public SchematicServerPayload(UUID uuid, int byteCount, byte[] data, int paletteSize, int[] paletteIDs, String[] paletteBlockStates) {
             this.uuid = uuid;
-            this.name = name;
             this.byteCount = byteCount;
             this.data = data;
             this.paletteSize = paletteSize;
@@ -85,10 +120,6 @@ public class ServerPayloadManager {
         }
         private void tickInternal() {
             this.state = switch (state) {
-                case SENDING_HEADER ->  {
-                    ModNetwork.INSTANCE.sendToServer(new SchematicHeaderPacket(uuid, paletteSize, byteCount, name, ));
-                    yield PAYLOAD_STATE.SENDING_BYTES;
-                }
                 case SENDING_BYTES -> {
                     int indexDifference = byteCount-1 - lastSentByteIndex;
                     if(indexDifference > MAX_BYTES_SENDABLE) {
@@ -124,7 +155,7 @@ public class ServerPayloadManager {
                         shiftedIndex = i;
                     }
                     boolean lastPacket = lastSentPaletteIndex >= paletteSize-1;
-                    ModNetwork.INSTANCE.sendToServer(new SchematicPalletePacket(this.uuid, lastPacket, entriesToBeSent,
+                    ModNetwork.INSTANCE.sendToServer(new SchematicPalettePacket(this.uuid, lastPacket, entriesToBeSent,
                             Arrays.copyOfRange(paletteIDs, lastSentPaletteIndex, shiftedIndex), Arrays.copyOfRange(paletteBlockStates, lastSentPaletteIndex, shiftedIndex)));
                     lastSentPaletteIndex = shiftedIndex;
                     yield lastPacket ? PAYLOAD_STATE.COMPLETED : PAYLOAD_STATE.SENDING_PALETTE;

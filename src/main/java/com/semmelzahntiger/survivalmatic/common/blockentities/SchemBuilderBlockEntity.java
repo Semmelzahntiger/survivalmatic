@@ -29,10 +29,11 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
     public enum STATE {
         IDLE(0),
-        SCHEMATIC_LOCKED(1),
-        READY(2),
-        BUILDING(3),
-        DUMPING(4);
+        RECEIVING_DATA(1),
+        SCHEMATIC_LOCKED(2),
+        READY(3),
+        BUILDING(4),
+        DUMPING(5);
         private final int id;
         STATE(int id) {
             this.id = id;

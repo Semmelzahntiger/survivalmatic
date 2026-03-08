@@ -1,12 +1,13 @@
-package com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schem;
+package com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer;
 
-import io.netty.buffer.ByteBuf;
+import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.UUID;
+import java.util.function.Supplier;
 
-public class SchematicBytePacket {
+public class SchematicBytePacket implements IPacketPayload {
     public final UUID requestUUID;
     public final boolean finalBytePacket;
     public final byte[] data;
@@ -24,18 +25,21 @@ public class SchematicBytePacket {
     public boolean isFinalBytePacket() {
         return finalBytePacket;
     }
-    public static void encode(SchematicBytePacket packet, FriendlyByteBuf buffer) {
-        buffer.writeUUID(packet.requestUUID);
-        buffer.writeBoolean(packet.finalBytePacket);
-        buffer.writeByteArray(packet.data);
+    public void encode(FriendlyByteBuf buffer) {
+        buffer.writeUUID(this.requestUUID);
+        buffer.writeBoolean(this.finalBytePacket);
+        buffer.writeByteArray(this.data);
     }
+
+    @Override
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+
+    }
+
     public static SchematicBytePacket decode(FriendlyByteBuf buffer) {
         UUID requestUUID = buffer.readUUID();
         boolean finalBytePacket = buffer.readBoolean();
         byte[] data = buffer.readByteArray();
         return new SchematicBytePacket(requestUUID, data, finalBytePacket);
-    }
-    public static void handle(SchematicBytePacket packet, NetworkEvent.Context ctx) {
-
     }
 }

@@ -1,14 +1,14 @@
-package com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schem;
+package com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer;
 
+import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Vec3i;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.UUID;
+import java.util.function.Supplier;
 
-public class SchematicHeaderPacket {
+public class SchematicHeaderPacket implements IPacketPayload {
     public final UUID requestUUID;
     public final int paletteSize;
     public final int byteCount;
@@ -36,22 +36,25 @@ public class SchematicHeaderPacket {
     public short[] getDimensions() {
         return dimensions;
     }
-    public UUID getRequestUUID() {
-        return requestUUID;
-    }
     public BlockPos getBlockEntityPosition() {
         return blockEntityPosition;
     }
-    public static void encode(SchematicHeaderPacket packet, FriendlyByteBuf buffer) {
-        buffer.writeUUID(packet.requestUUID);
-        buffer.writeInt(packet.paletteSize);
-        buffer.writeInt(packet.byteCount);
-        buffer.writeUtf(packet.schematicName);
-        buffer.writeShort(packet.dimensions[0]);
-        buffer.writeShort(packet.dimensions[1]);
-        buffer.writeShort(packet.dimensions[2]);
-        buffer.writeBlockPos(packet.blockEntityPosition);
+    public void encode(FriendlyByteBuf buffer) {
+        buffer.writeUUID(requestUUID);
+        buffer.writeInt(this.paletteSize);
+        buffer.writeInt(this.byteCount);
+        buffer.writeUtf(this.schematicName);
+        buffer.writeShort(this.dimensions[0]);
+        buffer.writeShort(this.dimensions[1]);
+        buffer.writeShort(this.dimensions[2]);
+        buffer.writeBlockPos(this.blockEntityPosition);
     }
+
+    @Override
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+
+    }
+
     public static SchematicHeaderPacket decode(FriendlyByteBuf buffer) {
         UUID requestUUID = buffer.readUUID();
         int paletteSize = buffer.readInt();
@@ -64,8 +67,5 @@ public class SchematicHeaderPacket {
         };
         BlockPos blockEntityPosition = new BlockPos(buffer.readBlockPos());
         return new SchematicHeaderPacket(requestUUID, paletteSize, byteCount, schematicName, dimensions, blockEntityPosition);
-    }
-    public static void handle(SchematicHeaderPacket packet, NetworkEvent.Context ctx) {
-
     }
 }
