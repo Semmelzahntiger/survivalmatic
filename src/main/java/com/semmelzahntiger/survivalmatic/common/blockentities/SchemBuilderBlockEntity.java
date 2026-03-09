@@ -2,14 +2,12 @@ package com.semmelzahntiger.survivalmatic.common.blockentities;
 
 import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
 import com.semmelzahntiger.survivalmatic.common.registries.Registry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;

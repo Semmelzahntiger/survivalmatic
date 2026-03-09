@@ -1,10 +1,9 @@
 package com.semmelzahntiger.survivalmatic.common.network;
 
-import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.TransferHeaderPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.TransferPayloadPacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferHeaderResponsePacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferResultPacket;
 import net.minecraft.resources.ResourceLocation;

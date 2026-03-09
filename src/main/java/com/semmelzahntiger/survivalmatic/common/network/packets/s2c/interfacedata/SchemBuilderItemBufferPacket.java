@@ -1,7 +1,6 @@
-package com.semmelzahntiger.survivalmatic.common.network.packets.s2c;
+package com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata;
 
 
-import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;

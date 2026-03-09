@@ -1,4 +1,4 @@
-package com.semmelzahntiger.survivalmatic.common.network.packets.s2c;
+package com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata;
 
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.network.FriendlyByteBuf;
