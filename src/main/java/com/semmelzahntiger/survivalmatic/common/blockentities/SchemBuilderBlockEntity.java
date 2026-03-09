@@ -32,11 +32,10 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public enum STATE {
         IDLE(0),
         RECEIVING_DATA(1),
-        PROCESSING(2),
-        SCHEMATIC_LOCKED(3),
-        READY(4),
-        BUILDING(5),
-        DUMPING(6);
+        SCHEMATIC_LOCKED(2),
+        READY(3),
+        BUILDING(4),
+        DUMPING(5);
         private final int id;
         STATE(int id) {
             this.id = id;
@@ -160,14 +159,10 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private void internalTick(Level level, BlockPos pos, BlockState blockState) {
         this.state = switch (state) {
             case IDLE, READY, RECEIVING_DATA -> this.state;
-            case PROCESSING -> {
-                MinecraftServer server = level.getServer();
-                HolderLookup.Provider registry = server.registryAccess();
-            }
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
                     boolean enoughResource = true;
-                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems.entrySet()) {
+                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
                         Item item = entry.getKey();
                         int minAmount = entry.getValue();
                         if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
@@ -244,7 +239,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
         private BuildInstance(SchematicReader.SchematicInstance instance) {
             this.instance = instance;
-            LAST_INDEX = instance.height * instance.width * instance.length;
+            LAST_INDEX = instance.height() * instance.width() * instance.length();
         }
         public void setCanceled() {
             isCanceled = true;
@@ -267,11 +262,11 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             }
             int remainingBatchCount = BUILD_BATCH_SIZE;
             batch:
-            for (int y = trackedHeight; y < instance.height; y++) {
+            for (int y = trackedHeight; y < instance.height(); y++) {
                 trackedHeight = y;
-                for (int x = trackedWidth; x < instance.width; x++) {
+                for (int x = trackedWidth; x < instance.width(); x++) {
                     trackedWidth = x;
-                    for (int z = trackedLength; z < instance.length; z++) {
+                    for (int z = trackedLength; z < instance.length(); z++) {
                         // If batch is exhausted, continue in the next tick, or if build is finished terminate as well (in case the tick is triggered even if it shouldn't)
                         if(remainingBatchCount == 0 || isFinished()) break batch;
                         trackedLength = z;
