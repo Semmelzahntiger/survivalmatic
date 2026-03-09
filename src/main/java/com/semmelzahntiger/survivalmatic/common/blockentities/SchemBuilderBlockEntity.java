@@ -89,6 +89,13 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private void setState(STATE state) {
         this.state = state;
     }
+    public boolean newIncomingRequest() {
+        if(state != STATE.IDLE) {
+            return false;
+        }
+        setState(STATE.RECEIVING_DATA);
+        return true;
+    }
     public void setPlacesAir(boolean placesAir) {
         this.placesAir = placesAir;
     }
@@ -133,6 +140,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         return serverSchematicInstance;
     }
     public void setSchematicInstance(SchematicReader.ServerSchematicInstance serverSchematicInstance) {
+        state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
     }
     public void setDisplayMessage(String displayMessage) {
@@ -147,7 +155,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     }
     private void internalTick(Level level, BlockPos pos, BlockState blockState) {
         this.state = switch (state) {
-            case IDLE, READY -> this.state;
+            case IDLE, READY, RECEIVING_DATA -> this.state;
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
                     boolean enoughResource = true;

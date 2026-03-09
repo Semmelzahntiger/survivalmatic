@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.client.schem;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicBytePacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicHeaderPacket;
@@ -16,21 +17,25 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 @OnlyIn(Dist.CLIENT)
 @Mod.EventBusSubscriber(modid = MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
-public class ServerPayloadManager {
-    public static final ServerPayloadManager INSTANCE = new ServerPayloadManager();
+public class ClientPayloadManager {
+    public static final ClientPayloadManager INSTANCE = new ClientPayloadManager();
     private final HashMap<UUID, Tuple<SchematicReader.ClientInstance,CompletableFuture<Boolean>>> pendingRequests = new HashMap<>();
     private final HashMap<UUID, SchematicServerPayload> payloads = new HashMap<>();
     private final HashMap<UUID, CompletableFuture<Boolean>> payloadResponses = new HashMap<>();
 
+
     @SubscribeEvent
     public static void tickEvent(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
-            ServerPayloadManager.INSTANCE.tick();
+            ClientPayloadManager.INSTANCE.tick();
         }
     }
 
@@ -52,24 +57,60 @@ public class ServerPayloadManager {
      *
      * @param instance currently loaded instance
      * @param blockEntityPos Position of blockEntity
-     * @return {@link CompletableFuture<Boolean>} containing the Result if the Server accepted the Request
+     * @return {@link CompletableFuture<Boolean>} containing the Result if the Server accepted the Request and {@link CompletableFuture<Boolean>} containing if the Schematic Transfer was successful
      */
-    public Tuple<SchematicReader.ClientInstance,CompletableFuture<Boolean>> newRequest(SchematicReader.ClientInstance instance, BlockPos blockEntityPos) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+    public Tuple<CompletableFuture<Boolean>,CompletableFuture<Boolean>> newRequest(SchematicReader.ClientInstance instance, BlockPos blockEntityPos) {
+        CompletableFuture<Boolean> requestFuture = new CompletableFuture<>();
+        CompletableFuture<Boolean> payloadFuture = new CompletableFuture<>();
         UUID requestUUID = UUID.randomUUID();
-        pendingRequests.put(requestUUID,new Tuple<>(instance,future));
+        pendingRequests.put(requestUUID,new Tuple<>(instance,requestFuture));
+        Survivalmatic.LOGGER.info("Sending Request with UUID '" + requestUUID + "'");
         ModNetwork.INSTANCE.sendToServer(new SchematicHeaderPacket(requestUUID, instance.paletteSize, instance.byteCount,instance.name, new short[] {instance.length, instance.height, instance.width }, blockEntityPos));
-        return new Tuple<>(instance, future);
+        requestFuture.orTimeout(20, TimeUnit.SECONDS).thenAccept(request -> {
+            pendingRequests.remove(requestUUID);
+            if(request) {
+                Survivalmatic.LOGGER.info("Request with UUID '" + requestUUID + "' accepted, creating Payload...");
+                addPayloadAsync(requestUUID, instance, payloadFuture);
+            }
+            else {
+                Survivalmatic.LOGGER.warn("Request with UUID '" + requestUUID + "' rejected, terminating...");
+                payloadFuture.completeExceptionally(new CancellationException());
+            }
+        }).exceptionally(exception -> {
+            if(exception instanceof CancellationException) {
+                Survivalmatic.LOGGER.warn("Request with UUID '" + requestUUID + "' cancelled, terminating...");
+            }
+            else if (exception instanceof TimeoutException) {
+                Survivalmatic.LOGGER.warn("Request with UUID '" + requestUUID + "' timed out, terminating...");
+            }
+            pendingRequests.remove(requestUUID);
+            payloadFuture.completeExceptionally(exception);
+            return null;
+        });
+        payloadFuture.thenAccept(value -> {
+            Survivalmatic.LOGGER.info("Transfer with UUID '" + requestUUID + "' successful");
+            removePayload(requestUUID);
+
+        }).exceptionally(exception -> {
+            removePayload(requestUUID);
+            return null;
+        });
+        return new Tuple<>(requestFuture,payloadFuture);
     }
-    public Tuple<UUID, CompletableFuture<Boolean>> addPayloadAsync(UUID id, SchematicReader.ClientInstance instance) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+    private void removePayload(UUID requestUUID) {
+        pendingRequests.remove(requestUUID);
+        payloads.remove(requestUUID);
+        payloadResponses.remove(requestUUID);
+    }
+
+    private void addPayloadAsync(UUID id, SchematicReader.ClientInstance instance, CompletableFuture<Boolean> payloadFuture) {
         HashMap<Integer, String> palette = instance.paletteMap;
         int[] paletteIDs = palette.keySet().stream().mapToInt(i -> i).toArray();
         String[] paletteBlockStates = palette.values().toArray(new String[0]);
         SchematicServerPayload payload = new SchematicServerPayload(id, instance.byteCount, instance.blockData, instance.paletteSize, paletteIDs, paletteBlockStates);
         payloads.put(id, payload);
-        payloadResponses.put(id, future);
-        return new Tuple<>(id, future);
+        payloadResponses.put(id, payloadFuture);
     }
     private Optional<CompletableFuture<Boolean>> getPendingRequest(UUID id) {
         return Optional.of(pendingRequests.get(id).getB());
@@ -85,6 +126,7 @@ public class ServerPayloadManager {
     }
     public void cancelRequest(UUID requestID) {
         payloads.remove(requestID);
+        getPendingRequest(requestID).ifPresent(future -> future.completeExceptionally(new CancellationException()));
         getPayloadResponse(requestID).ifPresent(future -> future.completeExceptionally(new CancellationException()));
     }
     public static class SchematicServerPayload {

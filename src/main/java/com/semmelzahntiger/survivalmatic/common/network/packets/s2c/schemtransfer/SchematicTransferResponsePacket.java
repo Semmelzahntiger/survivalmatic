@@ -4,17 +4,21 @@ import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
-public class SchematicResponsePacket implements IPacketPayload {
+public class SchematicTransferResponsePacket implements IPacketPayload {
+    private final UUID requestUUID;
     private final boolean success;
 
-    public SchematicResponsePacket(boolean success) {
+    public SchematicTransferResponsePacket(UUID requestUUID, boolean success) {
+        this.requestUUID = requestUUID;
         this.success = success;
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
+        buf.writeUUID(requestUUID);
         buf.writeBoolean(success);
     }
 
@@ -22,7 +26,7 @@ public class SchematicResponsePacket implements IPacketPayload {
     public void handle(Supplier<NetworkEvent.Context> ctx) {
 
     }
-    public static SchematicResponsePacket decode(FriendlyByteBuf buf) {
-        return new SchematicResponsePacket(buf.readBoolean());
+    public static SchematicTransferResponsePacket decode(FriendlyByteBuf buf) {
+        return new SchematicTransferResponsePacket(buf.readUUID(), buf.readBoolean());
     }
 }

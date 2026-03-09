@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.schem;
 
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -9,6 +10,10 @@ public class ServerSchemEventHandler {
     @SubscribeEvent
     public static void serverStartedEvent(ServerStartedEvent event) {
         ServerSchematicHandler.createInstance();
+    }
+    @SubscribeEvent
+    public static void serverTickEvent(TickEvent.ServerTickEvent event) {
+        ServerSchematicHandler.getInstance().ifPresent(instance -> instance.tick(event.getServer()));
     }
     @SubscribeEvent
     public static void serverStoppedEvent(ServerStoppedEvent event) {

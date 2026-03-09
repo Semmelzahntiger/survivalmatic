@@ -2,7 +2,6 @@ package com.semmelzahntiger.survivalmatic;
 
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindEventHandler;
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindInteractionHandler;
-import com.semmelzahntiger.survivalmatic.client.schem.ServerPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.events.CapabilityRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.ServerSchemEventHandler;
 import net.minecraftforge.common.MinecraftForge;
