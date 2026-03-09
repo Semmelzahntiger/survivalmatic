@@ -47,7 +47,7 @@ public class SchemBuilderItemCap implements IItemHandler {
     @Override
     public @NotNull ItemStack insertItem(int i, @NotNull ItemStack itemStack, boolean b) {
         int insertAmount = itemStack.getCount();
-        Map<Item, Integer> requiredItems = schemBuilder.getSchematicInstance().getRequiredItems();
+        Map<Item, Integer> requiredItems = schemBuilder.getSchematicInstance().requiredItems();
         int requiredAmount = requiredItems.getOrDefault(itemStack.getItem(), -1);
         // Return in full if not required
         if(requiredAmount < 0) {
@@ -102,7 +102,7 @@ public class SchemBuilderItemCap implements IItemHandler {
 
     @Override
     public boolean isItemValid(int i, @NotNull ItemStack itemStack) {
-        return schemBuilder.getSchematicInstance().getRequiredItems().containsKey(itemStack.getItem());
+        return schemBuilder.getSchematicInstance().requiredItems().containsKey(itemStack.getItem());
     }
 
 }

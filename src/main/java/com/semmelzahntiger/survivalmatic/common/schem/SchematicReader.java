@@ -1,12 +1,13 @@
 package com.semmelzahntiger.survivalmatic.common.schem;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -14,153 +15,93 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Todo: Documentation
- */
 public class SchematicReader {
     @OnlyIn(Dist.CLIENT)
-    public static Optional<ClientInstance> getClientSchematicInstance(File file) throws IOException {
-        CompoundTag schematicData = NbtIo.readCompressed(file);
-        int version = schematicData.getInt("Version");
-        // Version 2 Parser
-        if(version == 2) {
-            CompoundTag metaData = schematicData.getCompound("Metadata");
-            BlockPos weOffset = new BlockPos(
-                    metaData.getInt("WEOffsetX"),
-                    metaData.getInt("WEOffsetY"),
-                    metaData.getInt("WEOffsetZ")
-            );
-            short width = schematicData.getShort("Width");
-            short height = schematicData.getShort("Height");
-            short length = schematicData.getShort("Length");
-
-            CompoundTag paletteTag = schematicData.getCompound("Palette");
-            byte[] blockDataBytes = schematicData.getByteArray("BlockData");
-            // Holds BlockState for each ID in the Schematic (Inversed CompoundTag)
-            HashMap<Integer, String> paletteMap = new HashMap<>();
-            for (String key : paletteTag.getAllKeys()) {
-                paletteMap.put(paletteTag.getInt(key), key);
-            }
-            return Optional.of(new ClientInstance(width, height, length, weOffset, blockDataBytes, paletteMap));
+    public static Optional<StreamableSchematicInstance> getStreamableInstance(File file) {
+        try(FileInputStream stream = new FileInputStream(file)) {
+            String name = file.getName();
+            byte[] bytes = stream.readAllBytes();
+            return Optional.of(new StreamableSchematicInstance(name, bytes));
         }
-        else if (version == 3) {
-            CompoundTag blockTag = schematicData.getCompound("Blocks");
-            CompoundTag palette = blockTag.getCompound("Palette");
-            byte[] blockDataBytes = blockTag.getByteArray("Data");
-            short length = schematicData.getShort("Length");
-            short height = schematicData.getShort("Height");
-            short width = schematicData.getShort("Width");
-            int[] offsets = schematicData.getIntArray("Offset");
-            BlockPos offset = new BlockPos(offsets[0], offsets[1], offsets[2]);
-            HashMap<Integer, String> paletteMap = new HashMap<>();
-            for (String key : palette.getAllKeys()) {
-                paletteMap.put(palette.getInt(key), key);
-            }
-            return Optional.of(new ClientInstance(length, height, width, offset, blockDataBytes, paletteMap));
+        catch(IOException e) {
+            return Optional.empty();
         }
-        else {
+        catch(Exception e) {
             return Optional.empty();
         }
     }
-    @OnlyIn(Dist.CLIENT)
-    public static CompletableFuture<Optional<ClientInstance>> getClientSchematicInstanceAsync(File file) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return getClientSchematicInstance(file);
-            } catch (IOException e) {
-                Survivalmatic.LOGGER.error("Couldn't load schematic from disk", e);
+    public static Optional<ByteArrayInputStream> readFileAsInputStream(File file) {
+        try(FileInputStream stream = new FileInputStream(file)) {
+            byte[] bytes = stream.readAllBytes();
+            return Optional.of(new ByteArrayInputStream(bytes));
+        }
+        catch (FileNotFoundException e) {
+            Survivalmatic.LOGGER.error("File not found", e);
+        }
+        catch (IOException e) {
+            Survivalmatic.LOGGER.error("Error reading file", e);
+        }
+        return Optional.empty();
+    }
+    public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, HolderLookup.Provider registry) {
+        try {
+            CompoundTag schematicData = NbtIo.readCompressed(stream);
+            int version = schematicData.getInt("Version");
+            BlockPos schematicOffset;
+            short width;
+            short height;
+            short length;
+            byte[] blockDataBytes;
+            HashMap<Integer, String> paletteMap = new HashMap<>();
+            HashMap<Integer, BlockState> blockStateMap = new HashMap<>();
+            HashMap<Integer, Item> itemMap = new HashMap<>();
+            HashMap<Item, Integer> requiredItems = new HashMap<>();
+            CompoundTag paletteTag;
+            // Schematic Version 2 Parser
+            if (version == 2) {
+                CompoundTag metaData = schematicData.getCompound("Metadata");
+                schematicOffset = new BlockPos(
+                        metaData.getInt("WEOffsetX"),
+                        metaData.getInt("WEOffsetY"),
+                        metaData.getInt("WEOffsetZ")
+                );
+                width = schematicData.getShort("Width");
+                height = schematicData.getShort("Height");
+                length = schematicData.getShort("Length");
+                paletteTag = schematicData.getCompound("Palette");
+                blockDataBytes = schematicData.getByteArray("BlockData");
+                // Holds BlockState for each ID in the Schematic (Inversed CompoundTag)
+            }
+            // Schematic Version 3 Parser
+            else if (version == 3) {
+                CompoundTag blockTag = schematicData.getCompound("Blocks");
+                paletteTag = blockTag.getCompound("Palette");
+                blockDataBytes = blockTag.getByteArray("Data");
+                length = schematicData.getShort("Length");
+                height = schematicData.getShort("Height");
+                width = schematicData.getShort("Width");
+                int[] offsets = schematicData.getIntArray("Offset");
+                schematicOffset = new BlockPos(offsets[0], offsets[1], offsets[2]);
+            }
+            else {
                 return Optional.empty();
             }
-        });
-    }
-    @OnlyIn(Dist.CLIENT)
-    public static class ClientInstance {
-        public final String name;
-        public final short length;
-        public final short height;
-        public final short width;
-        public final BlockPos offset;
-        public final int byteCount;
-        public final byte[] blockData;
-        public final int paletteSize;
-        public final HashMap<Integer, String> paletteMap;
-        public ClientInstance(String name, short length, short height, short width, BlockPos offset, byte[] blockData, HashMap<Integer, String> palleteMap) {
-            this.name = name;
-            this.length = length;
-            this.height = height;
-            this.width = width;
-            this.offset = offset;
-            this.byteCount = blockData.length;
-            this.blockData = blockData;
-            this.paletteSize = palleteMap.size();
-            this.paletteMap = palleteMap;
-        }
-    }
-    public static class ServerSchematicInstance {
-        public final int width;
-        public final int height;
-        public final int length;
-        public final Map<Item, Integer> requiredItems;
-        private final int[] blockData;
-        private final Map<Integer, BlockState> palette;
 
-        public ServerSchematicInstance(int width, int height, int length, Map<Item, Integer> requiredItems, int[] blockData, Map<Integer, BlockState> palette) {
-            this.width = width;
-            this.height = height;
-            this.length = length;
-            this.requiredItems = Map.copyOf(requiredItems);
-            this.blockData = blockData;
-            this.palette = Map.copyOf(palette);
-        }
-        public BlockState getBlockState(int x, int y, int z) {
-            // return Air if out of bounds
-            if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) {
-                return Blocks.AIR.defaultBlockState();
+            for (String key : paletteTag.getAllKeys()) {
+                paletteMap.put(paletteTag.getInt(key), key);
             }
-            int index = (y * width * length) + (z * width) + x;
-            int paletteId = blockData[index];
-            return palette.getOrDefault(paletteId, Blocks.AIR.defaultBlockState());
-        }
-        public int[] getBlockData() {
-            return blockData;
-        }
-        public Map<Item, Integer> getRequiredItems() {
-            return requiredItems;
-        }
-        public Map<Item, Integer> getRequiredItemsCopy() {
-            return Map.copyOf(requiredItems);
-        }
-        public static ServerSchematicInstance createFromBuilder(ServerSchematicHandler.SchematicBuilder builder, MinecraftServer server) {
-            HashMap<Item, Integer> requiredItems = new HashMap<>();
-            HashMap<Integer, Item> paletteItems = new HashMap<>();
-            List<Byte> blockData = builder.getBytes();
-            HashMap<Integer, String> palette = builder.getPalette();
-            HashMap<Integer, BlockState> paletteBlockStates = new HashMap<>();
-            for (Map.Entry<Integer, String> integerStringEntry : palette.entrySet()) {
-                int key = integerStringEntry.getKey();
-                try {
-                    BlockState result = BlockStateParser.parseForBlock(
-                            server.registryAccess().lookupOrThrow(Registries.BLOCK), palette.get(key), false).blockState();
-                    if(result != Blocks.AIR.defaultBlockState()) {
-                        paletteBlockStates.put(key, result);
-                        Item item = result.getBlock().asItem();
-                        paletteItems.put(key, item);
-                    }
-                }
-                catch (Exception e) {
-                    Survivalmatic.LOGGER.error("Error while parsing block state", e);
-                }
+            for (Map.Entry<Integer, String> entry : paletteMap.entrySet()) {
+                BlockStateParser.BlockResult result = BlockStateParser.parseForBlock(registry.lookupOrThrow(Registries.BLOCK), entry.getValue(), false);
+                blockStateMap.put(entry.getKey(), result.blockState());
+                itemMap.put(entry.getKey(), result.blockState().getBlock().asItem());
             }
-
-            int totalSize = builder.getWidth() * builder.getHeight() * builder.getLength();
+            int totalSize = width * height * length;
             int[] blockDataIntegers = new int[totalSize];
             int byteIndex = 0;
             for (int i = 0; i < totalSize; i++) {
@@ -169,20 +110,62 @@ public class SchematicReader {
                 int offset = 0;
                 byte currentByte;
                 do {
-                    currentByte = blockData.get(byteIndex++);
+                    currentByte = blockDataBytes[byteIndex++];
                     value |= (currentByte & 0x7f) << offset;
                     offset += 7;
                     lastByte = (currentByte & 0x80) == 0;
                 } while (!lastByte);
 
                 blockDataIntegers[i] = value;
-                Item item = paletteItems.get(value);
+                Item item = itemMap.get(value);
                 if (item != null && item != Items.AIR) {
                     requiredItems.merge(item, 1, Integer::sum);
                 }
             }
-            return new ServerSchematicInstance(builder.getWidth(), builder.getHeight(), builder.getLength(),
-                    requiredItems, blockDataIntegers, paletteBlockStates);
+            return Optional.of(new SchematicInstance(width, height, length, blockDataIntegers, schematicOffset, blockStateMap, requiredItems));
+        }
+        catch (IOException exception) {
+            Survivalmatic.LOGGER.error("Failed to read schematic from ByteArrayInputStream", exception);
+            return Optional.empty();
+        }
+        catch(CommandSyntaxException exception) {
+            Survivalmatic.LOGGER.error("Failed to parse BlockState", exception);
+            return Optional.empty();
         }
     }
+    public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(ByteArrayInputStream stream, HolderLookup.Provider registry) {
+        return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(stream, registry));
+    }
+    public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromFileAsync(File file, HolderLookup.Provider registry) {
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<ByteArrayInputStream> stream = readFileAsInputStream(file);
+            return stream.isPresent() ? readSchematicFromBuffer(stream.get(), registry) : Optional.empty();
+        });
+    }
+    @OnlyIn(Dist.CLIENT)
+    public static class StreamableSchematicInstance {
+        public final String name;
+        public final int dataSize;
+        public final byte[] data;
+        public StreamableSchematicInstance(String name, byte[] data) {
+            this.name = name;
+            this.dataSize = data.length;
+            this.data = data;
+        }
+    }
+
+    public record SchematicInstance(int width, int height, int length, int[] blockData, BlockPos offset,
+                                    Map<Integer, BlockState> palette, Map<Item, Integer> requiredItems) {
+        public BlockState getBlockState(int x, int y, int z) {
+                if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) {
+                    return Blocks.AIR.defaultBlockState();
+                }
+                int index = (y * width * length) + (z * width) + x;
+                int paletteId = blockData[index];
+                return palette.getOrDefault(paletteId, Blocks.AIR.defaultBlockState());
+            }
+        public Map<Item, Integer> getRequiredItemsCopy() {
+                return Map.copyOf(requiredItems);
+            }
+        }
 }

@@ -4,19 +4,22 @@ import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.SchematicTransferRequestResponsePacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.SchematicTransferResponsePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferResultPacket;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.PacketDistributor;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.ApiStatus;
 
+import java.io.ByteArrayInputStream;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Serverside Counterpart to {@link ClientPayloadManager ServerPayloadManager}
@@ -41,78 +44,52 @@ public class ServerSchematicHandler {
 
     private final HashMap<UUID, SchematicBuilder> queuedSchematics = new HashMap<>();
 
-    private void addRequest(UUID requestUUID, UUID playerUUID, int paletteSize, int byteCount, String schematicName, short[] dimensions, BlockPos blockEntityPos, ServerLevel level) {
-        SchematicBuilder schematicBuilder = new SchematicBuilder(playerUUID, requestUUID, blockEntityPos, dimensions[0], dimensions[1], dimensions[2], byteCount, paletteSize, schematicName, level);
+    private void addRequest(UUID requestUUID,String schematicName, String uploaderName, int byteCount, GlobalPos pos) {
+        SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, uploaderName, byteCount, pos);
+        queuedSchematics.put(requestUUID, schematicBuilder);
     }
 
-    /**
-     * Called by the {@link com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicHeaderPacket SchematicHeaderPacket}'s Handler
-     * Acts as first handshake before Clients send Schematic Data to Server
-     */
-    public void incomingInitialRequest(UUID requestUUID, int paletteSize, int byteCount, String schematicName, short[] dimensions, BlockPos blockEntityPos, MinecraftServer server, UUID playerUUID) {
-        ServerPlayer requester = server.getPlayerList().getPlayer(requestUUID);
-        ServerLevel level = requester.serverLevel();
-        BlockEntity blockEntity = level.getBlockEntity(blockEntityPos);
+    public void incomingInitialRequest(UUID requestUUID,String schematicName, int byteCount, GlobalPos blockEntityPos, MinecraftServer server, UUID playerUUID) {
+        ServerPlayer requester = server.getPlayerList().getPlayer(playerUUID);
+        ResourceKey<Level> level = blockEntityPos.dimension();
+        BlockEntity blockEntity = server.getLevel(level).getBlockEntity(blockEntityPos.pos());
         if (blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.newIncomingRequest()) {
             sendHeaderResponse(requestUUID, requester, true);
-            addRequest(requestUUID,playerUUID, paletteSize, byteCount, schematicName, dimensions, blockEntityPos, level);
+            addRequest(requestUUID,schematicName,requester.getName().getString(), byteCount, blockEntityPos);
         }
         else {
             sendHeaderResponse(requestUUID, requester, false);
         }
-
     }
-    private void sendHeaderResponse(UUID requestUUID, ServerPlayer player, boolean accepted) {
-        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SchematicTransferRequestResponsePacket(requestUUID,accepted));
-    }
-    private void sendSchematicResponse(UUID requestUUID, ServerPlayer player, boolean success) {
-        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new SchematicTransferResponsePacket(requestUUID,success));
-    }
-
-    /**
-     * Processes {@link com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicBytePacket SchematicBytePackets} from the Client. If request for does not exist send a failed schematic transfer response. If the BytePacket is marked as the final byte packet but validation fails, terminate and send failed transfer response
-     */
-    public void incomingByteBatch(UUID requestUUID,  byte[] bytes, boolean finalBytePacket, MinecraftServer server, UUID playerUUID) {
-       SchematicBuilder schem =  queuedSchematics.get(requestUUID);
-       ServerPlayer player = server.getPlayerList().getPlayer(playerUUID);
-       if(schem == null) {
-           sendSchematicResponse(requestUUID, player, false);
-           return;
-       }
-       schem.addBytes(bytes);
-       if(finalBytePacket) {
-           if(!schem.validateBytes()) {
-               terminateRequest(requestUUID, player);
-           }
-       }
-    }
-    /**
-     * Processes {@link com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicPalettePacket SchematicPalettePackets} from the Client. If request for does not exist send a failed schematic transfer response. If final Palette packet arrives and palette cannot be validated, terminate and send failed transfer response.
-     * If Validation succeeds, build {@link com.semmelzahntiger.survivalmatic.common.schem.SchematicReader.ServerSchematicInstance ServerSchematicInstance} and pass it to the corresponding BlockEntity
-     */
-    public void incomingPaletteBatch(UUID requestUUID,int payloadSize, int[] paletteIDs, String[] paletteBlockStates, boolean finalPalettePacket, MinecraftServer server, UUID playerUUID) {
-        SchematicBuilder schem =  queuedSchematics.get(requestUUID);
+    public void incomingByteBatch(UUID requestUUID, byte[] bytes, boolean finalBytePacket, MinecraftServer server, UUID playerUUID) {
+        SchematicBuilder schem = queuedSchematics.get(requestUUID);
         ServerPlayer player = server.getPlayerList().getPlayer(playerUUID);
         if(schem == null) {
             sendSchematicResponse(requestUUID, player, false);
             return;
         }
-        schem.addPalleteData(payloadSize, paletteIDs, paletteBlockStates);
-        if(finalPalettePacket) {
-            if(!schem.validatePalleteData()) {
-                terminateRequest(requestUUID, player);
+        schem.addBytes(bytes);
+        if(finalBytePacket) {
+            if(schem.validatePayload()) {
+                schem.buildAndPassToBlockEntity(server);
+                sendSchematicResponse(requestUUID, player, true);
             }
             else {
-                schem.buildInstanceAndPassToBlockEntity(server);
-                sendSchematicResponse(requestUUID, player, true);
-                queuedSchematics.remove(requestUUID);
+                terminateRequest(requestUUID, player);
             }
         }
     }
+    private void sendHeaderResponse(UUID requestUUID, ServerPlayer player, boolean accepted) {
+        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(requestUUID,accepted));
+    }
+    public void sendSchematicResponse(UUID requestUUID, ServerPlayer player, boolean success) {
+        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(requestUUID,success));
+    }
+
+
     private void terminateRequest(UUID requestUUID, ServerPlayer player) {
         queuedSchematics.remove(requestUUID);
         sendSchematicResponse(requestUUID, player, false);
-
     }
     public void tick(MinecraftServer server) {
         Iterator<Map.Entry<UUID, SchematicBuilder>> iterator = queuedSchematics.entrySet().iterator();
@@ -127,89 +104,44 @@ public class ServerSchematicHandler {
         }
     }
     public static class SchematicBuilder {
-        private final UUID playerUUID;
-        private final ResourceKey<Level> level;
-        private final UUID requestUUID;
-        private final BlockPos blockEntityPosition;
-        private final short length;
-        private final short height;
-        private final short width;
+        private final String name;
+        private final String uploader;
         private final int byteCount;
-        private final int palleteSize;
-        private final String schematicName;
-
-        private final HashMap<Integer, String> palette = new HashMap<>();
-        private List<Byte> bytes = new ArrayList<>();
-        private HashMap<Integer, String> palleteData = new HashMap<>();
-        private List<Byte> schematicBytes = new ArrayList<>();
+        private final List<Byte> bytes = new ArrayList<>();
+        private final GlobalPos blockEntityPos;
 
         private int ticksSinceLastUpdate = 0;
 
-        private SchematicBuilder(UUID playerUUID, UUID requestUUID, BlockPos blockEntityPosition, short length, short height, short width, int byteCount, int palleteSize, String schematicName, ServerLevel serverLevel) {
-            this.playerUUID = playerUUID;
-            level = serverLevel.dimension();
-            this.requestUUID = requestUUID;
-            this.blockEntityPosition = blockEntityPosition;
-            this.length = length;
-            this.height = height;
-            this.width = width;
+        public SchematicBuilder(String schematicName, String uploader, int byteCount, GlobalPos blockEntityPos) {
+            this.name = schematicName;
+            this.uploader = uploader;
             this.byteCount = byteCount;
-            this.palleteSize = palleteSize;
-            this.schematicName = schematicName;
+            this.blockEntityPos = blockEntityPos;
         }
+
         public void addBytes(byte[] newBytes) {
             for (byte newByte : newBytes) {
                 bytes.add(newByte);
             }
             ticksSinceLastUpdate = 0;
         }
-        public boolean validateBytes() {
-            return bytes.size() == byteCount;
-        }
-        public void addPalleteData(int size, int[] palleteID, String[] blockState) {
-            for (int i = 0; i < size; i++) {
-                palette.put(palleteID[i], blockState[i]);
-            }
-            ticksSinceLastUpdate++;
-        }
-        public boolean validatePalleteData() {
-            return palleteData.size() == palleteSize;
-        }
-        public SchematicReader.ServerSchematicInstance buildInstance(MinecraftServer server) {
-            return SchematicReader.ServerSchematicInstance.createFromBuilder(this, server);
-        }
-        public void buildInstanceAndPassToBlockEntity(MinecraftServer server) {
-            BlockEntity be = Objects.requireNonNull(server.getLevel(level)).getBlockEntity(blockEntityPosition);
-            if(be instanceof SchemBuilderBlockEntity schemBuilderBlockEntity) {
-                schemBuilderBlockEntity.setSchematicInstance(buildInstance(server));
-            }
-        }
-        public short getLength() {
-            return length;
-        }
-        public short getHeight() {
-            return height;
-        }
-        public short getWidth() {
-            return width;
-        }
-        public int getByteCount() {
-            return byteCount;
-        }
-        public List<Byte> getBytes() {
-            return bytes;
-        }
-        public int getPalleteSize() {
-            return palleteSize;
-        }
-        public String getSchematicName() {
-            return schematicName;
-        }
-        public HashMap<Integer, String> getPalette() {
-            return palette;
+        public void buildAndPassToBlockEntity(MinecraftServer server) {
+            HolderLookup.Provider registry = server.registryAccess();
+            CompletableFuture<Optional<SchematicReader.SchematicInstance>> schematicFutureOptional = SchematicReader.getSchematicFromBufferAsync(new ByteArrayInputStream(ArrayUtils.toPrimitive(bytes.toArray(new Byte[0]))), registry);
+            schematicFutureOptional.thenAccept(optional -> optional.ifPresent(instance -> {
+                ResourceKey<Level> level = this.blockEntityPos.dimension();
+                BlockPos pos = blockEntityPos.pos();
+                BlockEntity blockEntity = server.getLevel(level).getBlockEntity(pos);
+                if(blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.getState() == SchemBuilderBlockEntity.STATE.RECEIVING_DATA) {
+                    schemBuilder.setSchematicInstance(instance);
+                }
+            }));
         }
         public void tick() {
             ticksSinceLastUpdate++;
+        }
+        public boolean validatePayload() {
+            return bytes.size() == byteCount;
         }
         public int getTicksSinceLastUpdate() {
             return ticksSinceLastUpdate;

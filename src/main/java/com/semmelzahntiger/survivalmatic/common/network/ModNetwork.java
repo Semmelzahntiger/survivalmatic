@@ -1,10 +1,12 @@
 package com.semmelzahntiger.survivalmatic.common.network;
 
 import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
-import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.SchemBuilderGUIButtonInteract;
-import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.SchematicHeaderPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.TransferHeaderPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.TransferPayloadPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderItemBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.SchemBuilderStatePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferHeaderResponsePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferResultPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -21,45 +23,15 @@ public class ModNetwork {
             PROTOCOL_VERSION::equals
     );
     public static void clientMessages() {
-        INSTANCE.registerMessage(ID++, SchemBuilderGUIButtonInteract.class,(packet, encodeByteBuf) -> {
-                    encodeByteBuf.writeInt(packet.getInteractionID());
-                },
-                decodeByteBuf -> {
-                    int id = decodeByteBuf.readInt();
-                    return new SchemBuilderGUIButtonInteract(id);
-                },
-                (decodedPacket, ctx) -> {
-                    ctx.get().enqueueWork(() -> {
-
-                    });
-                    ctx.get().setPacketHandled(true);
-                });
-
-        INSTANCE.registerMessage(ID++, SchematicHeaderPacket.class,
-            SchematicHeaderPacket::encode,
-            SchematicHeaderPacket::decode,
-            SchematicHeaderPacket::handle);
+        INSTANCE.registerMessage(ID++, TransferHeaderPacket.class, TransferHeaderPacket::encode, TransferHeaderPacket::decode, TransferHeaderPacket::handle);
+        INSTANCE.registerMessage(ID++, TransferPayloadPacket.class, TransferPayloadPacket::encode, TransferPayloadPacket::decode, TransferPayloadPacket::handle);
     }
     public static void serverMessages() {
-        INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class,
-                (packet, encodeByteBuf) -> {
-                    encodeByteBuf.writeInt(packet.getState());
-                    encodeByteBuf.writeUtf(packet.getMessage());
-                },
-                decodeByteBuf -> {
-                    int state = decodeByteBuf.readInt();
-                    String message = decodeByteBuf.readUtf();
-                    return new SchemBuilderStatePacket(state, message);
-                },
-                (decodedPacket, ctx) -> {
-                    SchemBuilderInterfaceData.getINSTANCE().setState(decodedPacket.getState());
-                    SchemBuilderInterfaceData.getINSTANCE().setDisplayMessage(decodedPacket.getMessage());
-                    ctx.get().setPacketHandled(true);
-                });
-        INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class,
-                SchemBuilderItemBufferPacket::encode,
-                SchemBuilderItemBufferPacket::decode,
-                SchemBuilderItemBufferPacket::handle);
+        INSTANCE.registerMessage(ID++, TransferHeaderResponsePacket.class, TransferHeaderResponsePacket::encode, TransferHeaderResponsePacket::decode, TransferHeaderResponsePacket::handle);
+        INSTANCE.registerMessage(ID++, TransferResultPacket.class, TransferResultPacket::encode, TransferResultPacket::decode, TransferResultPacket::handle);
+
+        INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class, SchemBuilderStatePacket::encode, SchemBuilderStatePacket::decode, SchemBuilderStatePacket::handle);
+        INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class, SchemBuilderItemBufferPacket::encode, SchemBuilderItemBufferPacket::decode, SchemBuilderItemBufferPacket::handle);
     }
     static {
         clientMessages();

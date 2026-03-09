@@ -8,6 +8,8 @@ import com.semmelzahntiger.survivalmatic.common.registries.Registry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -30,10 +32,11 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public enum STATE {
         IDLE(0),
         RECEIVING_DATA(1),
-        SCHEMATIC_LOCKED(2),
-        READY(3),
-        BUILDING(4),
-        DUMPING(5);
+        PROCESSING(2),
+        SCHEMATIC_LOCKED(3),
+        READY(4),
+        BUILDING(5),
+        DUMPING(6);
         private final int id;
         STATE(int id) {
             this.id = id;
@@ -48,7 +51,8 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private final HashMap<Item, Integer> dumpBuffer = new HashMap<>();
     private boolean dumpBufferChanged = false;
 
-    private SchematicReader.ServerSchematicInstance serverSchematicInstance = null;
+    private SchematicReader.SchematicInstance serverSchematicInstance = null;
+    private Map<Item, Integer> requiredItems = new HashMap<>();
 
     private BuildInstance buildInstance = null;
     private boolean placesAir = false;
@@ -59,7 +63,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
     LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
 
-    public SchemBuilderBlockEntity( BlockPos pPos, BlockState pBlockState) {
+    public SchemBuilderBlockEntity(BlockPos pPos, BlockState pBlockState) {
         super(Registry.SCHEM_BUILDER_BE.get(), pPos, pBlockState);
         inventoryHandlerLazyOptional = LazyOptional.of(() -> new SchemBuilderItemCap(this));
     }
@@ -136,10 +140,10 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void clearDumpBuffer() {
         dumpBuffer.clear();
     }
-    public SchematicReader.ServerSchematicInstance getSchematicInstance() {
+    public SchematicReader.SchematicInstance getSchematicInstance() {
         return serverSchematicInstance;
     }
-    public void setSchematicInstance(SchematicReader.ServerSchematicInstance serverSchematicInstance) {
+    public void setSchematicInstance(SchematicReader.SchematicInstance serverSchematicInstance) {
         state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
     }
@@ -156,6 +160,10 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private void internalTick(Level level, BlockPos pos, BlockState blockState) {
         this.state = switch (state) {
             case IDLE, READY, RECEIVING_DATA -> this.state;
+            case PROCESSING -> {
+                MinecraftServer server = level.getServer();
+                HolderLookup.Provider registry = server.registryAccess();
+            }
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
                     boolean enoughResource = true;
@@ -229,12 +237,12 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
         private final int LAST_INDEX;
         private int currentIndex = 1;
-        final SchematicReader.ServerSchematicInstance instance;
+        final SchematicReader.SchematicInstance instance;
 
         private boolean isCanceled = false;
         private boolean isPaused = false;
 
-        private BuildInstance(SchematicReader.ServerSchematicInstance instance) {
+        private BuildInstance(SchematicReader.SchematicInstance instance) {
             this.instance = instance;
             LAST_INDEX = instance.height * instance.width * instance.length;
         }

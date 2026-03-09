@@ -7,26 +7,24 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-public class SchematicTransferResponsePacket implements IPacketPayload {
+public class TransferResultPacket implements IPacketPayload {
     private final UUID requestUUID;
-    private final boolean success;
-
-    public SchematicTransferResponsePacket(UUID requestUUID, boolean success) {
+    private final boolean accepted;
+    public TransferResultPacket(UUID requestUUID, boolean accepted) {
         this.requestUUID = requestUUID;
-        this.success = success;
+        this.accepted = accepted;
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUUID(requestUUID);
-        buf.writeBoolean(success);
+        buf.writeBoolean(accepted);
     }
-
+    public static TransferResultPacket decode(FriendlyByteBuf in) {
+        return new TransferResultPacket(in.readUUID(), in.readBoolean());
+    }
     @Override
     public void handle(Supplier<NetworkEvent.Context> ctx) {
 
-    }
-    public static SchematicTransferResponsePacket decode(FriendlyByteBuf buf) {
-        return new SchematicTransferResponsePacket(buf.readUUID(), buf.readBoolean());
     }
 }

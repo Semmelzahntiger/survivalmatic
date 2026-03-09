@@ -1,6 +1,12 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.s2c;
 
-public class SchemBuilderStatePacket {
+import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.network.NetworkEvent;
+
+import java.util.function.Supplier;
+
+public class SchemBuilderStatePacket implements IPacketPayload {
     private final int state;
     private final String message;
     public SchemBuilderStatePacket(int state, String message) {
@@ -12,5 +18,19 @@ public class SchemBuilderStatePacket {
     }
     public String getMessage() {
         return message;
+    }
+
+    @Override
+    public void encode(FriendlyByteBuf buf) {
+        buf.writeInt(state);
+        buf.writeUtf(message);
+    }
+
+    @Override
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+
+    }
+    public static SchemBuilderStatePacket decode(FriendlyByteBuf buf) {
+        return new SchemBuilderStatePacket(buf.readInt(), buf.readUtf());
     }
 }

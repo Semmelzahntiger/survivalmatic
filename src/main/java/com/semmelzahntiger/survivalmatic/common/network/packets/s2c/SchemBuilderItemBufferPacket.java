@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic.common.network.packets.s2c;
 
 
 import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
+import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.Item;
@@ -11,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class SchemBuilderItemBufferPacket {
+public class SchemBuilderItemBufferPacket implements IPacketPayload {
     public final Map<Item, Integer> materialBufferItems;
     public final Map<Item, Integer> dumpBufferItems;
 
@@ -31,6 +32,11 @@ public class SchemBuilderItemBufferPacket {
             buf.writeInt(itemIntegerEntry.getValue());
         }
     }
+
+    @Override
+    public void handle(Supplier<NetworkEvent.Context> ctx) {
+
+    }
     public static SchemBuilderItemBufferPacket decode(FriendlyByteBuf buf) {
         Map<Item, Integer> materialBufferItems = new HashMap<>();
         Map<Item, Integer> dumpBufferItems = new HashMap<>();
@@ -44,8 +50,5 @@ public class SchemBuilderItemBufferPacket {
         }
         return new SchemBuilderItemBufferPacket(materialBufferItems, dumpBufferItems);
     }
-    public static void handle(SchemBuilderItemBufferPacket packet, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> SchemBuilderInterfaceData.getINSTANCE().computeItemPacket(packet));
-        ctx.get().setPacketHandled(true);
-    }
+
 }
