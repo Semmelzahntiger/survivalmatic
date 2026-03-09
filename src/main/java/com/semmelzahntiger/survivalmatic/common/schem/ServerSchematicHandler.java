@@ -22,8 +22,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Serverside Counterpart to {@link ClientPayloadManager ServerPayloadManager}
- * Todo: Add server side saving feature
+ * <p>Serverside Counterpart to {@link ClientPayloadManager ServerPayloadManager}</p>
+ * <p>Todo: Documentation</p>
  */
 public class ServerSchematicHandler {
     private static ServerSchematicHandler INSTANCE;
@@ -48,7 +48,6 @@ public class ServerSchematicHandler {
         SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, uploaderName, byteCount, pos);
         queuedSchematics.put(requestUUID, schematicBuilder);
     }
-
     public void incomingInitialRequest(UUID requestUUID,String schematicName, int byteCount, GlobalPos blockEntityPos, MinecraftServer server, UUID playerUUID) {
         ServerPlayer requester = server.getPlayerList().getPlayer(playerUUID);
         ResourceKey<Level> level = blockEntityPos.dimension();

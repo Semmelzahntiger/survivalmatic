@@ -22,6 +22,11 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class SchematicReader {
+    /**
+     * Reads a Schematic file from Disk and converts it into a {@link StreamableSchematicInstance StreamableSchematicInstance} intended to be sent to the Server, thus is only available on the Client
+     * @param file Schematic File
+     * @return {@link Optional} of the {@link StreamableSchematicInstance StreamableSchematicInstance}, if file cannot be read, return empty
+     */
     @OnlyIn(Dist.CLIENT)
     public static Optional<StreamableSchematicInstance> getStreamableInstance(File file) {
         try(FileInputStream stream = new FileInputStream(file)) {
@@ -30,12 +35,20 @@ public class SchematicReader {
             return Optional.of(new StreamableSchematicInstance(name, bytes));
         }
         catch(IOException e) {
+            Survivalmatic.LOGGER.error("Couldn't read schematic from Disk", e);
             return Optional.empty();
         }
         catch(Exception e) {
+            Survivalmatic.LOGGER.error("Error occurred while trying to create StreamableInstance", e);
             return Optional.empty();
         }
     }
+
+    /**
+     * Only reads the Schematic as a {@link ByteArrayInputStream}
+     * @param file schematic file
+     * @return Optional of {@link ByteArrayInputStream}
+     */
     public static Optional<ByteArrayInputStream> readFileAsInputStream(File file) {
         try(FileInputStream stream = new FileInputStream(file)) {
             byte[] bytes = stream.readAllBytes();
@@ -49,6 +62,13 @@ public class SchematicReader {
         }
         return Optional.empty();
     }
+
+    /**
+     * Takes a {@link ByteArrayInputStream} (e.g. from {@link SchematicReader#readFileAsInputStream(File)} and attempts to convert it into a {@link SchematicInstance SchematicInstance}
+     * @param stream ByteArray from the Schematic
+     * @param registry RegistryAccess from the Server in order to retrieve {@link BlockState BlockStates} and the required {@link Item Items} for the Schematic
+     * @return Optional of {@link SchematicInstance SchematicInstance}
+     */
     public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
             CompoundTag schematicData = NbtIo.readCompressed(stream);
@@ -133,15 +153,33 @@ public class SchematicReader {
             return Optional.empty();
         }
     }
+
+    /**
+     * Asynchronous Version of {@link SchematicReader#readSchematicFromBuffer(ByteArrayInputStream, HolderLookup.Provider)}
+     * @return {@link CompletableFuture} containing the Optional of {@link SchematicInstance SchematicInstance}
+     */
     public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(ByteArrayInputStream stream, HolderLookup.Provider registry) {
         return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(stream, registry));
     }
+
+    /**
+     * @apiNote Currently Serves no purpose, in the future I intend to allow users to upload Schematics to the Server and share them with all players
+     * Asynchronously reads Schematic from File
+     * @param file Schematic File
+     * @param registry RegistryAccess
+     * @return {@link CompletableFuture} with the Optional {@link SchematicInstance SchematicInstance}
+     */
     public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromFileAsync(File file, HolderLookup.Provider registry) {
         return CompletableFuture.supplyAsync(() -> {
             Optional<ByteArrayInputStream> stream = readFileAsInputStream(file);
             return stream.isPresent() ? readSchematicFromBuffer(stream.get(), registry) : Optional.empty();
         });
     }
+
+    /**
+     * <p>Client side representation of a schematic, does not contain or expose any concrete information about the schematic</p>
+     * <p>Intended to be streamed to the server via the {@link com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager ClientPayloadManager}</p>
+     */
     @OnlyIn(Dist.CLIENT)
     public static class StreamableSchematicInstance {
         public final String name;
@@ -154,6 +192,17 @@ public class SchematicReader {
         }
     }
 
+    /**
+     * Common/Server Side representation of a schematic, contains the actual information from the Schematic.
+     * Either instantiated from {@link SchematicReader#getSchematicFromFileAsync(File, HolderLookup.Provider)} or built from {@link ServerSchematicHandler ServerSchematicHandler}
+     * @param width Width of Schematic
+     * @param height Height of Schematic
+     * @param length Length of Schematic
+     * @param blockData Integer array converted from the Schematics Byte Array
+     * @param offset Offset of the Schematic
+     * @param palette All BlockStates in the Schematic with their respective blockData ID
+     * @param requiredItems All required Items for the Schematic
+     */
     public record SchematicInstance(int width, int height, int length, int[] blockData, BlockPos offset,
                                     Map<Integer, BlockState> palette, Map<Item, Integer> requiredItems) {
         public BlockState getBlockState(int x, int y, int z) {
