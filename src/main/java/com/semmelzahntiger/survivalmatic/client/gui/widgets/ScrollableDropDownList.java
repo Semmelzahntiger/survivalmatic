@@ -28,7 +28,7 @@ public class ScrollableDropDownList extends AbstractWidget {
     private boolean isOpened = false;
 
     private double currentYScroll = 0;
-    private double scrollIndexShift = 0;
+    private int scrollIndexShift = 0;
 
     private final int closedYSize;
     private final int openedYSize;
@@ -131,8 +131,47 @@ public class ScrollableDropDownList extends AbstractWidget {
     }
 
     @Override
+    public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+        if(this.active && this.visible && this.isValidClickButton(pButton)) {
+            boolean mainElementClicked = pMouseX >= this.getX() && pMouseX < this.getX() + this.getWidth() && pMouseY >= this.getY() && pMouseY <= this.getY() + closedYSize;
+            boolean listClicked = pMouseX >= this.getX() && pMouseX < this.getX() + this.getWidth() && pMouseY >= this.getY() + closedYSize && pMouseY <= this.getY() + openedYSize;
+            if(mainElementClicked) {
+                onClickMainElement(pMouseX, pMouseY);
+                return true;
+            }
+            if(isOpened && listClicked) {
+                onClickListElement(pMouseX, pMouseY);
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    @Override
     public void onClick(double pMouseX, double pMouseY) {
         super.onClick(pMouseX, pMouseY);
+    }
+
+    @Override
+    protected boolean clicked(double pMouseX, double pMouseY) {
+        return super.clicked(pMouseX, pMouseY);
+    }
+
+    private void onClickMainElement(double pMouseX, double pMouseY) {
+        if(isOpened) {
+            close();
+        }
+        else {
+            open();
+        }
+    }
+    private void onClickListElement(double pMouseX, double pMouseY) {
+        int clickedIndex = hoveredIndex + scrollIndexShift;
+        if(clickedIndex < entries.size()) {
+            selectedEntry = entries.get(clickedIndex);
+            close();
+        }
     }
     public void addTextEntry(Component text) {
         this.entries.add(new TextEntry(this.width, entryHeight, text));
@@ -223,6 +262,10 @@ public class ScrollableDropDownList extends AbstractWidget {
         private final Component text;
         public TextEntry(int width, int height, Component text) {
             super(width, height);
+            this.text = text;
+        }
+        public TextEntry(int width, int height, Component text, ResourceLocation customEntryTexture) {
+            super(width, height, customEntryTexture);
             this.text = text;
         }
 

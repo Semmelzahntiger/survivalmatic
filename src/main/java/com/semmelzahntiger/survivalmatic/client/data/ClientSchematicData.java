@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
@@ -17,7 +18,7 @@ public class ClientSchematicData {
     public static final ClientSchematicData INSTANCE = new ClientSchematicData();
 
     private SchematicReader.StreamableSchematicInstance schematicInstance = null;
-    private List<String> availableSchematics = new ArrayList<>();
+    private final HashMap<String, File> availableSchematics = new HashMap<>();
     private ClientSchematicData() {}
     public SchematicReader.StreamableSchematicInstance getSchematicInstance() {
         return schematicInstance;
@@ -29,11 +30,17 @@ public class ClientSchematicData {
         availableSchematics.clear();
         String[] extensions = {"schem"};
         Collection<File> files = FileUtils.listFiles(Survivalmatic.SCHEMATIC_PATH.toFile(), extensions, false);
-        for (File file : files) {
-            availableSchematics.add(file.getName());
-        }
+        files.forEach(file -> {
+            availableSchematics.put(file.getName(), file);
+        });
     }
-    public List<String> getAvailableSchematics() {
-        return availableSchematics;
+    public Collection<String> getAvailableSchematicNames() {
+        return availableSchematics.keySet();
+    }
+    public Collection<File> getAvailableSchematics() {
+        return availableSchematics.values();
+    }
+    public File getSchematicFile(String schematicName) {
+        return availableSchematics.get(schematicName);
     }
 }
