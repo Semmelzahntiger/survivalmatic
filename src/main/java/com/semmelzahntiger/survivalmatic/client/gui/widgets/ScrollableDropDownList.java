@@ -3,8 +3,8 @@ package com.semmelzahntiger.survivalmatic.client.gui.widgets;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -15,7 +15,7 @@ import java.util.function.BiConsumer;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
-public class ScrollableDropDownList extends AbstractWidget {
+public class ScrollableDropDownList extends AbstractVWidget {
     private final ResourceLocation DEFAULT_ENTRY_TEXTURE;
     private final ResourceLocation BACKGROUND;
     // Debug
@@ -47,12 +47,18 @@ public class ScrollableDropDownList extends AbstractWidget {
     private double currentYScroll = 0;
     private int scrollIndexShift = 0;
 
+    public final float entryWidthRatio;
+    public final float entryHeightRatio;
+
+    public int entryOffsetX;
+    public int entryWidth;
+    public int entryHeight;
+
     public final int listOffset;
-    private final int closedYSize;
-    private final int openedYSize;
-    private final int listStart;
-    private final int listYSize;
-    private final int entryHeight;
+    private int closedHeight;
+    private int openedHeight;
+    private int listStart;
+    private int listYSize;
     private final int visibleEntries;
 
     private int scrollSliderSize;
@@ -64,11 +70,12 @@ public class ScrollableDropDownList extends AbstractWidget {
     ListEntry selectedEntry = null;
 
     private ScrollableDropDownList(Builder builder) {
-        super(builder.x,  builder.y, builder.width, builder.height, builder.message);
-        this.listOffset = builder.listOffset;
-        this.closedYSize = builder.height;
-        this.openedYSize = builder.height * (builder.visibleEntries + 1) + this.listOffset;
-        this.entryHeight = builder.height;
+        super(builder.x,  builder.y, builder.width, builder.height, builder.screen, builder.message);
+        this.listOffset = relativeToAbsoluteY(builder.listOffset);
+
+        this.closedHeight = relativeToAbsoluteY(builder.height);
+        this.openedHeight = (int) (relativeToAbsoluteY(builder.height) + (relativeToAbsoluteY(builder.height) * (builder.visibleEntries + 1)) * builder.listEntryHeightRatio + this.listOffset);
+
         this.visibleEntries = builder.visibleEntries;
         this.DEFAULT_ENTRY_TEXTURE = builder.entryTexture;
         this.BACKGROUND = builder.background;
@@ -76,25 +83,34 @@ public class ScrollableDropDownList extends AbstractWidget {
         this.ACTIVE_BORDER = builder.selectedBorder;
         this.LIST_BORDER = builder.listBorder;
         this.SLIDER = builder.slider;
-        this.listStart = builder.y + builder.height + listOffset;
-        this.listYSize = this.openedYSize - this.closedYSize - this.listOffset;
 
-        this.hoverLeftMargin = builder.hoveredLeftMargin;
-        this.hoverTopMargin = builder.hoveredTopMargin;
-        this.hoverRightMargin = builder.hoveredRightMargin;
-        this.hoverBottomMargin = builder.hoveredBottomMargin;
+        this.listStart = relativeToAbsoluteY(builder.y) + relativeToAbsoluteY(builder.height) + listOffset;
+        this.listYSize = this.openedHeight - this.closedHeight - this.listOffset;
 
-        this.activeBorderLeftMargin = builder.hoveredLeftMargin;
-        this.activeBorderTopMargin = builder.hoveredTopMargin;
-        this.activeBorderRightMargin = builder.hoveredRightMargin;
-        this.activeBorderBottomMargin = builder.hoveredBottomMargin;
+        this.hoverLeftMargin = relativeToAbsoluteX(builder.hoveredLeftMargin);
+        this.hoverTopMargin = relativeToAbsoluteY(builder.hoveredTopMargin);
+        this.hoverRightMargin = relativeToAbsoluteX(builder.hoveredRightMargin);
+        this.hoverBottomMargin = relativeToAbsoluteY(builder.hoveredBottomMargin);
 
-        this.listBorderLeftMargin = builder.hoveredLeftMargin;
-        this.listBorderTopMargin = builder.hoveredTopMargin;
-        this.listBorderRightMargin = builder.hoveredRightMargin;
-        this.listBorderBottomMargin = builder.hoveredBottomMargin;
+        this.activeBorderLeftMargin = relativeToAbsoluteX(builder.selectedLeftMargin);
+        this.activeBorderTopMargin = relativeToAbsoluteY(builder.selectedTopMargin);
+        this.activeBorderRightMargin = relativeToAbsoluteX(builder.selectedRightMargin);
+        this.activeBorderBottomMargin = relativeToAbsoluteY(builder.selectedBottomMargin);
 
-        this.sliderRightMargin = builder.sliderMargin;
+        this.listBorderLeftMargin = relativeToAbsoluteX(builder.listLeftMargin);
+        this.listBorderTopMargin = relativeToAbsoluteY(builder.listTopMargin);
+        this.listBorderRightMargin = relativeToAbsoluteX(builder.listRightMargin);
+        this.listBorderBottomMargin = relativeToAbsoluteY(builder.listBottomMargin);
+
+        this.sliderRightMargin = relativeToAbsoluteX(builder.sliderMargin);
+        entryWidthRatio = builder.listEntryWidthRatio;
+        entryHeightRatio = builder.listEntryHeightRatio;
+
+
+        entryWidth = (int) (this.getWidth() * entryWidthRatio);
+        entryHeight = (int) (this.getHeight() * entryHeightRatio);
+        entryOffsetX = (this.getWidth() - entryWidth) / 2;
+
     }
 
     @Override
@@ -103,22 +119,22 @@ public class ScrollableDropDownList extends AbstractWidget {
         this.scrollSliderSize = entryCount != 0 ? listYSize * (visibleEntries / entryCount) : 0;
         this.offsetForScrollSlider = entryCount > visibleEntries ? listYSize / (entryCount - visibleEntries) : 0;
 
-        guiGraphics.blit(BACKGROUND, this.getX(), this.getY(), this.getWidth(), this.getHeight(),0,0,256,256, 256, 256);
+        guiGraphics.blit(BACKGROUND, this.getX(), this.getY(), this.getWidth(), closedHeight,0,0,256,256, 256, 256);
         if(selectedEntry != null) {
-            selectedEntry.renderInternal(guiGraphics, this.getX(), this.getY(), this.getWidth(), listStart, i, i1, v);
+            selectedEntry.renderInternal(guiGraphics, this.getX(), this.getY(), this.getWidth(), closedHeight, i, i1, v);
         }
         guiGraphics.blit(ACTIVE_BORDER,this.getX() - activeBorderLeftMargin, this.getY() - activeBorderTopMargin,
-                this.getWidth() + activeBorderRightMargin, closedYSize + activeBorderBottomMargin,
+                this.getWidth() + activeBorderRightMargin, closedHeight + activeBorderBottomMargin,
                 0,0,256,256, 256, 256);
         if(isOpened) {
-            guiGraphics.blit(LIST_BORDER, this.getX() - listBorderLeftMargin, listStart-listBorderTopMargin,  this.width + listBorderRightMargin, listStart + this.getHeight(),
+            guiGraphics.blit(LIST_BORDER, this.getX() + entryOffsetX - listBorderLeftMargin, listStart-listBorderTopMargin,  this.width - entryOffsetX + listBorderRightMargin, listStart + this.getHeight() + listBorderBottomMargin,
                     0,0,256,256, 256, 256);
             guiGraphics.enableScissor(this.getX(), listStart, this.getWidth(), this.getHeight());
             for (ListEntry entry : entries) {
                 entry.render(guiGraphics, i, i1, v);
             }
             //Debug
-            guiGraphics.blit(AREA, this.getX(), listStart, this.getWidth(), listYSize,0,0,256,256, 256, 256);
+            guiGraphics.blit(AREA, this.getX() + , listStart, this.getWidth(), listYSize,0,0,256,256, 256, 256);
             guiGraphics.disableScissor();
         }
         hoveredIndex = isHoveringOver(i,i1);
@@ -131,12 +147,12 @@ public class ScrollableDropDownList extends AbstractWidget {
     }
     protected void open() {
         isOpened = true;
-        this.setHeight(openedYSize);
+        this.setHeight(openedHeight);
         realignEntries();
     }
     protected void close() {
         isOpened = false;
-        this.setHeight(closedYSize);
+        this.setHeight(closedHeight);
         currentYScroll = 0;
     }
     private void realignEntries() {
@@ -180,31 +196,15 @@ public class ScrollableDropDownList extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
-        if(this.active && this.visible && this.isValidClickButton(pButton)) {
-            boolean mainElementClicked = pMouseX >= this.getX() && pMouseX < this.getX() + this.getWidth() && pMouseY >= this.getY() && pMouseY <= this.getY() + closedYSize;
-            boolean listClicked = pMouseX >= this.getX() && pMouseX < this.getX() + this.getWidth() && pMouseY >= this.getY() + closedYSize && pMouseY <= this.getY() + openedYSize;
-            if(mainElementClicked) {
-                onClickMainElement(pMouseX, pMouseY);
-                return true;
-            }
-            if(isOpened && listClicked) {
-                onClickListElement(pMouseX, pMouseY);
-                return true;
-            }
-            return false;
-        }
-        return false;
-    }
-
-    @Override
     public void onClick(double pMouseX, double pMouseY) {
-        super.onClick(pMouseX, pMouseY);
-    }
-
-    @Override
-    protected boolean clicked(double pMouseX, double pMouseY) {
-        return super.clicked(pMouseX, pMouseY);
+        boolean mainElementClicked = pMouseX >= this.getX() && pMouseX < this.getX() + this.getWidth() && pMouseY >= this.getY() && pMouseY <= this.getY() + closedHeight;
+        boolean listClicked = pMouseX >= this.getX() + entryOffsetX && pMouseX < this.getX() + this.getWidth() - entryOffsetX && pMouseY >= this.getY() + closedHeight && pMouseY <= this.getY() + openedHeight;
+        if(mainElementClicked) {
+            onClickMainElement(pMouseX, pMouseY);
+        }
+        if(isOpened && listClicked) {
+            onClickListElement(pMouseX, pMouseY);
+        }
     }
 
     private void onClickMainElement(double pMouseX, double pMouseY) {
@@ -223,18 +223,56 @@ public class ScrollableDropDownList extends AbstractWidget {
         }
     }
     public void addTextEntry(Component text) {
-        this.entries.add(new TextEntry(this.width, entryHeight, text));
+        this.entries.add(new TextEntry(this.getX() + entryOffsetX, this.entryWidth, this.entryHeight, text));
         entryCount++;
         realignEntries();
     }
     public void addImageEntry(ResourceLocation image, BiConsumer<ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ImageEntry(this.width, entryHeight, image, imageRenderer));
+        this.entries.add(new ImageEntry(this.getX() + entryOffsetX, this.entryWidth, this.entryHeight, image, imageRenderer));
         entryCount++;
         realignEntries();
     }
     public void addCustomEntry(BiConsumer<CustomEntry, CustomEntry.RenderWrapper> customRenderer) {
-        this.entries.add(new CustomEntry(this.width, entryHeight, customRenderer));
+        this.entries.add(new CustomEntry(this.getX() + entryOffsetX, this.entryWidth, this.entryHeight, customRenderer));
         entryCount++;
+        realignEntries();
+    }
+    protected void recalculateValues() {
+
+    }
+
+    @Override
+    public void setX(int pX) {
+        super.setX(pX);
+    }
+
+    @Override
+    public void setY(int pY) {
+        super.setY(pY);
+        realignEntries();
+    }
+
+    @Override
+    public void setWidth(int pWidth) {
+        super.setWidth(pWidth);
+        entryOffsetX = (int) ((pWidth - pWidth * entryWidthRatio) / 2);
+        entryWidth = (int) (pWidth * entryWidthRatio);
+        for (ListEntry entry : entries) {
+            entry.setX(entry.getX() + entryOffsetX);
+            entry.setWidth(entryWidth);
+        }
+        realignEntries();
+    }
+
+    @Override
+    public void setHeight(int value) {
+        super.setHeight(value);
+        closedHeight = value;
+        openedHeight = (int) (value + value * (visibleEntries + 1) * entryHeightRatio + this.listOffset);
+        entryHeight = (int) (value * entryHeightRatio);
+        for (ListEntry entry : entries) {
+            entry.setHeight(entryHeight);
+        }
         realignEntries();
     }
 
@@ -243,46 +281,58 @@ public class ScrollableDropDownList extends AbstractWidget {
 
     }
     public static class Builder {
-        public final int x;
-        public final int y;
-        public final int width;
-        public final int height;
+        public final Screen screen;
+        public final float x;
+        public final float y;
+        public final float width;
+        public final float height;
+        public float listEntryWidthRatio = 1.0f;
+        public float listEntryHeightRatio = 1.0f;
         public final int visibleEntries;
-        public int listOffset;
+        public float listOffset;
         public final Component message;
         public ResourceLocation entryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/list_entry.png");
         public ResourceLocation background =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/amk.png");
         public ResourceLocation hovered = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hovered.png");
-        public int hoveredLeftMargin = 0;
-        public int hoveredRightMargin = 0;
-        public int hoveredTopMargin = 0;
-        public int hoveredBottomMargin = 0;
+        public float hoveredLeftMargin = 0;
+        public float hoveredRightMargin = 0;
+        public float hoveredTopMargin = 0;
+        public float hoveredBottomMargin = 0;
         public ResourceLocation selectedBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_border.png");
-        public int selectedLeftMargin = 0;
-        public int selectedRightMargin = 0;
-        public int selectedTopMargin = 0;
-        public int selectedBottomMargin = 0;
+        public float selectedLeftMargin = 0;
+        public float selectedRightMargin = 0;
+        public float selectedTopMargin = 0;
+        public float selectedBottomMargin = 0;
         public ResourceLocation listBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_border.png");
-        public int listLeftMargin = 0;
-        public int listRightMargin = 0;
-        public int listTopMargin = 0;
-        public int listBottomMargin = 0;
+        public float listLeftMargin = 0;
+        public float listRightMargin = 0;
+        public float listTopMargin = 0;
+        public float listBottomMargin = 0;
         public ResourceLocation slider = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/slider.png");
-        public int sliderMargin = 0;
+        public float sliderMargin = 0;
 
-        private Builder(int pX, int pY, int pWidth, int pHeight, int pVisibleEntries, Component pMessage) {
-            x = pX;
-            y = pY;
-            width = pWidth;
-            height = pHeight;
+        private Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, int pVisibleEntries, Component pMessage, Screen screen) {
+            x = xRelative;
+            y = yRelative;
+            width = widthRelative;
+            height = heightRelative;
             visibleEntries = pVisibleEntries;
             message = pMessage;
+            this.screen = screen;
         }
-        public static Builder of(int x, int y, int width, int height, int visibleEntries, Component message) {
-            return new Builder(x, y, width, height, visibleEntries, message);
+        public static Builder of(float x, float y, float width, float height, int visibleEntries, Component message, Screen screen) {
+            return new Builder(x, y, width, height, visibleEntries, message, screen);
         }
         public Builder withListOffset(int offset) {
             listOffset = offset;
+            return this;
+        }
+        public Builder setEntryWidthRatio(float widthRatio) {
+            this.listEntryWidthRatio = widthRatio;
+            return this;
+        }
+        public Builder setEntryHeightRatio(float heightRatio) {
+            this.listEntryHeightRatio = heightRatio;
             return this;
         }
         public Builder setEntryTexture(ResourceLocation pEntryTexture) {
@@ -316,14 +366,15 @@ public class ScrollableDropDownList extends AbstractWidget {
     public abstract class ListEntry {
         protected int x = 0;
         protected int y = 0;
-        protected final int width;
-        protected final int height;
+        protected int width;
+        protected int height;
         protected final ResourceLocation entryTexture;
 
-        protected ListEntry(int width, int height) {
-            this(width, height, DEFAULT_ENTRY_TEXTURE);
+        protected ListEntry(int x,int width, int height) {
+            this(x, width, height, DEFAULT_ENTRY_TEXTURE);
         }
-        protected ListEntry(int width, int height, ResourceLocation pEntryTexture) {
+        protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture) {
+            this.x = x;
             this.width = width;
             this.height = height;
             this.entryTexture = pEntryTexture;
@@ -332,7 +383,7 @@ public class ScrollableDropDownList extends AbstractWidget {
             return entryTexture;
         }
         public void render(GuiGraphics pGraphics, int mouseX, int mouseY, float partialTick) {
-            renderInternal(pGraphics, this.getX(), this.getY(), this.width, this.getHeight(), mouseX, mouseY, partialTick);
+            renderInternal(pGraphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(), mouseX, mouseY, partialTick);
         }
         public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
             guiGraphics.blit(getEntryTexture(), x, y, width, height,0,0, 256, 112, 256, 112);
@@ -343,15 +394,17 @@ public class ScrollableDropDownList extends AbstractWidget {
         public void setY(int y) { this.y = y; }
         public int getWidth() { return width; }
         public int getHeight() { return height; }
+        public void setWidth(int width) { this.width = width; }
+        public void setHeight(int height) { this.height = height; }
     }
     public class TextEntry extends ListEntry {
         private final Component text;
-        public TextEntry(int width, int height, Component text) {
-            super(width, height);
+        public TextEntry(int x,int width, int height, Component text) {
+            super(x, width, height);
             this.text = text;
         }
-        public TextEntry(int width, int height, Component text, ResourceLocation customEntryTexture) {
-            super(width, height, customEntryTexture);
+        public TextEntry(int x, int width, int height, Component text, ResourceLocation customEntryTexture) {
+            super(x, width, height, customEntryTexture);
             this.text = text;
         }
 
@@ -365,8 +418,8 @@ public class ScrollableDropDownList extends AbstractWidget {
         private final ResourceLocation imageLocation;
         private final BiConsumer<ImageEntry, ResourceLocation> renderer;
 
-        public ImageEntry(int width, int height, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
-            super(width, height);
+        public ImageEntry(int x, int width, int height, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
+            super(x, width, height);
             this.imageLocation = imageLocation;
             this.renderer = renderer;
         }
@@ -379,8 +432,8 @@ public class ScrollableDropDownList extends AbstractWidget {
     public class CustomEntry extends ListEntry {
         private final BiConsumer<CustomEntry, RenderWrapper> customRenderer;
 
-        protected CustomEntry(int width, int height, BiConsumer<CustomEntry, RenderWrapper> renderer) {
-            super(width, height);
+        protected CustomEntry(int x, int width, int height, BiConsumer<CustomEntry, RenderWrapper> renderer) {
+            super(x,width, height);
             this.customRenderer = renderer;
         }
 
