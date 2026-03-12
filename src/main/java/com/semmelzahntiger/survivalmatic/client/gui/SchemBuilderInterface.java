@@ -14,7 +14,7 @@ public class SchemBuilderInterface extends Screen {
     @Override
     protected void init() {
         ScrollableDropDownList dropDownList = ScrollableDropDownList.Builder.of(
-                0,0, this.width /2, (int) (this.height*0.1), 3, Component.empty())
+                0,0, 0.5f, 0.1f, 3, Component.empty(), this)
                 .build();
         dropDownList.addTextEntry(Component.literal("Test 1"));
         dropDownList.addTextEntry(Component.literal("Test 2"));

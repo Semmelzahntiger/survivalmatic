@@ -20,6 +20,12 @@ public abstract class AbstractVWidget extends AbstractWidget {
         this.widthRelative = widthRelative;
         this.heightRelative = heightRelative;
     }
+    public int getXBound() {
+        return getX() + getWidth();
+    }
+    public int getYBound() {
+        return getY() + getHeight();
+    }
     public float getXRelative() {
         return xRelative;
     }
