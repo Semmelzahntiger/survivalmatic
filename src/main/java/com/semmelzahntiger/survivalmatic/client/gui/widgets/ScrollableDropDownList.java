@@ -11,7 +11,6 @@ import net.minecraft.util.Mth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
@@ -28,10 +27,10 @@ public class ScrollableDropDownList extends AbstractVWidget {
     public final int hoverBottomMargin;
 
     public final ResourceLocation ACTIVE_BORDER;
-    public final int activeBorderLeftMargin;
-    public final int activeBorderTopMargin;
-    public final int activeBorderRightMargin;
-    public final int activeBorderBottomMargin;
+    public final int selectedBorderLeftMargin;
+    public final int selectedBorderTopMargin;
+    public final int selectedBorderRightMargin;
+    public final int selectedBorderBottomMargin;
 
     public final ResourceLocation LIST_BORDER;
     public final int listBorderLeftMargin;
@@ -63,8 +62,6 @@ public class ScrollableDropDownList extends AbstractVWidget {
     protected double currentYScroll = 0;
     protected int scrollIndexShift = 0;
 
-
-
     protected int scrollSliderSize;
     protected int offsetForScrollSlider;
     List<ListEntry> entries = new ArrayList<>();
@@ -85,20 +82,20 @@ public class ScrollableDropDownList extends AbstractVWidget {
         // Texture Margins
         this.hoverLeftMargin = relativeToAbsoluteX(builder.hoveredLeftMargin);
         this.hoverTopMargin = relativeToAbsoluteY(builder.hoveredTopMargin);
-        this.hoverRightMargin = relativeToAbsoluteX(builder.hoveredRightMargin);
-        this.hoverBottomMargin = relativeToAbsoluteY(builder.hoveredBottomMargin);
+        this.hoverRightMargin = relativeToAbsoluteX(builder.hoveredRightMargin) + this.hoverLeftMargin;
+        this.hoverBottomMargin = relativeToAbsoluteY(builder.hoveredBottomMargin) + this.hoverTopMargin;
 
-        this.activeBorderLeftMargin = relativeToAbsoluteX(builder.selectedLeftMargin);
-        this.activeBorderTopMargin = relativeToAbsoluteY(builder.selectedTopMargin);
-        this.activeBorderRightMargin = relativeToAbsoluteX(builder.selectedRightMargin);
-        this.activeBorderBottomMargin = relativeToAbsoluteY(builder.selectedBottomMargin);
+        this.selectedBorderLeftMargin = relativeToAbsoluteX(builder.selectedLeftMargin);
+        this.selectedBorderTopMargin = relativeToAbsoluteY(builder.selectedTopMargin);
+        this.selectedBorderRightMargin = relativeToAbsoluteX(builder.selectedRightMargin) + this.selectedBorderLeftMargin;
+        this.selectedBorderBottomMargin = relativeToAbsoluteY(builder.selectedBottomMargin) + this.selectedBorderTopMargin;
 
-        this.listBorderLeftMargin = relativeToAbsoluteX(builder.selectedLeftMargin);
-        this.listBorderTopMargin = relativeToAbsoluteY(builder.selectedTopMargin);
-        this.listBorderRightMargin = relativeToAbsoluteX(builder.selectedRightMargin);
-        this.listBorderBottomMargin = relativeToAbsoluteY(builder.selectedBottomMargin);
+        this.listBorderLeftMargin = relativeToAbsoluteX(builder.listLeftMargin);
+        this.listBorderTopMargin = relativeToAbsoluteY(builder.listTopMargin);
+        this.listBorderRightMargin = relativeToAbsoluteX(builder.listRightMargin) + this.listBorderLeftMargin;
+        this.listBorderBottomMargin = relativeToAbsoluteY(builder.listBottomMargin) + this.listBorderTopMargin;
 
-        this.sliderRightMargin = relativeToAbsoluteX(builder.selectedLeftMargin);
+        this.sliderRightMargin = relativeToAbsoluteX(builder.sliderMargin);
         // Fixed Data
         this.visibleEntries = builder.visibleEntries;
         this.entryWidthRatio = builder.listEntryWidthRatio;
@@ -111,11 +108,17 @@ public class ScrollableDropDownList extends AbstractVWidget {
         listStart = this.getY() + this.getHeight() + listOffset;
         this.entryWidth = (int) (this.getWidth() * this.entryWidthRatio);
         this.entryHeight = (int) (this.getHeight() * this.entryHeightRatio);
+
         this.entryCenteringOffsetX = (this.getWidth() - this.entryWidth) / 2;
         this.entryOffsettedX = this.getX() + this.entryCenteringOffsetX;
 
         this.listHeight = visibleEntries * entryHeight;
-        this.openedHeight = relativeToAbsoluteY(builder.height + builder.listOffset) + this.listHeight;
+        this.openedHeight = relativeToAbsoluteY(builder.height+ builder.listOffset) + this.listHeight;
+
+        System.out.println("Offset Calc:" + this.getWidth() + " " + this.entryWidth + " " + (this.getWidth() - this.entryWidth) / 2);
+        System.out.println("Selected Margins: " + selectedBorderLeftMargin + " " + selectedBorderRightMargin + " " + selectedBorderTopMargin + " " + selectedBorderBottomMargin);
+        System.out.println("Center Position: " + this.getX() + " " + this.getWidth() +" "+ (this.getX() + this.getWidth()) / 2);
+        System.out.println("Center for Entries" + " " + entryOffsettedX + " " + entryWidth + " " + (entryOffsettedX + (entryWidth / 2)));
     }
 
     @Override
@@ -123,25 +126,23 @@ public class ScrollableDropDownList extends AbstractVWidget {
         RenderSystem.enableBlend();
         this.scrollSliderSize = entryCount != 0 ? listHeight * (visibleEntries / entryCount) : 0;
         this.offsetForScrollSlider = entryCount > visibleEntries ? listHeight / (entryCount - visibleEntries) : 0;
-        guiGraphics.blit(BACKGROUND, this.getX(), this.getY(), this.getWidth(), closedHeight,0,0,256,256, 256, 256);
+        guiGraphics.blit(BACKGROUND, this.getX(), this.getY(), this.getWidth(), closedHeight,0,0,this.getWidth(),closedHeight, this.getWidth(), closedHeight);
 
         if(selectedEntry != null) {
             selectedEntry.renderInternal(guiGraphics, this.getX(), this.getY(), this.getWidth(), closedHeight, i, i1, v);
         }
-        guiGraphics.blit(ACTIVE_BORDER,this.getX() - this.activeBorderLeftMargin, this.getY() - this.activeBorderTopMargin,
-                this.getWidth() + this.activeBorderRightMargin, this.closedHeight + this.activeBorderBottomMargin,
-                0,0,256,256, 256, 256);
+        guiGraphics.blit(ACTIVE_BORDER,this.getX() - this.selectedBorderLeftMargin, this.getY() - this.selectedBorderTopMargin,
+                this.getWidth() + this.selectedBorderRightMargin, this.closedHeight + this.selectedBorderBottomMargin,
+                0,0,entryWidth,entryHeight, entryWidth, entryHeight);
 
         if(isOpened) {
             guiGraphics.blit(LIST_BORDER, this.entryOffsettedX - this.listBorderLeftMargin, this.listStart - this.listBorderTopMargin,
                     this.entryWidth + this.listBorderRightMargin, this.listHeight + listBorderBottomMargin,
                     0,0,256,256, 256, 256);
-            guiGraphics.enableScissor(this.getX(), listStart, this.getWidth(), this.getHeight());
+            guiGraphics.enableScissor(this.getX(), listStart, this.getXBound(), this.listStart+ this.listHeight);
             for (ListEntry entry : entries) {
                 entry.render(guiGraphics, i, i1, v);
             }
-            //Debug
-            guiGraphics.blit(AREA, entryOffsettedX, listStart, this.getWidth(), listHeight,0,0,256,256, 256, 256);
             guiGraphics.disableScissor();
         }
         hoveredIndex = isHoveringOverIndex(i,i1);
@@ -271,6 +272,9 @@ public class ScrollableDropDownList extends AbstractVWidget {
         entryCount++;
         realignEntries();
     }
+    public void addEntry(ListEntry entry) {
+        this.entries.add(entry);
+    }
 
     @Override
     public void setX(int pX) {
@@ -349,7 +353,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
         public static Builder of(float x, float y, float width, float height, int visibleEntries, Component message, Screen screen) {
             return new Builder(x, y, width, height, visibleEntries, message, screen);
         }
-        public Builder withListOffset(int offset) {
+        public Builder setListOffset(float offset) {
             listOffset = offset;
             return this;
         }
@@ -383,6 +387,10 @@ public class ScrollableDropDownList extends AbstractVWidget {
         }
         public Builder setSlider(ResourceLocation pSlider) {
             this.slider = pSlider;
+            return this;
+        }
+        public Builder setSliderMargin(float margin) {
+            this.sliderMargin = margin;
             return this;
         }
         public Builder setHoveredMargins(float leftMargin, float rightMargin, float topMargin, float bottomMargin) {

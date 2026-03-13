@@ -30,9 +30,7 @@ public class ClientSchematicData {
         availableSchematics.clear();
         String[] extensions = {"schem"};
         Collection<File> files = FileUtils.listFiles(Survivalmatic.SCHEMATIC_PATH.toFile(), extensions, false);
-        files.forEach(file -> {
-            availableSchematics.put(file.getName(), file);
-        });
+        files.forEach(file -> availableSchematics.put(file.getName(), file));
     }
     public Collection<String> getAvailableSchematicNames() {
         return availableSchematics.keySet();
