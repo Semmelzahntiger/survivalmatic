@@ -136,14 +136,14 @@ public class ScrollableDropDownList extends AbstractVWidget {
                 0,0,entryWidth,entryHeight, entryWidth, entryHeight);
 
         if(isOpened) {
-            guiGraphics.blit(LIST_BORDER, this.entryOffsettedX - this.listBorderLeftMargin, this.listStart - this.listBorderTopMargin,
-                    this.entryWidth + this.listBorderRightMargin, this.listHeight + listBorderBottomMargin,
-                    0,0,256,256, 256, 256);
             guiGraphics.enableScissor(this.getX(), listStart, this.getXBound(), this.listStart+ this.listHeight);
             for (ListEntry entry : entries) {
                 entry.render(guiGraphics, i, i1, v);
             }
             guiGraphics.disableScissor();
+            guiGraphics.blit(LIST_BORDER, this.entryOffsettedX - this.listBorderLeftMargin, this.listStart - this.listBorderTopMargin,
+                    this.entryWidth + this.listBorderRightMargin, this.listHeight + listBorderBottomMargin,
+                    0,0,256,256, 256, 256);
         }
         hoveredIndex = isHoveringOverIndex(i,i1);
         if(hoveredIndex > -1) {
@@ -240,7 +240,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
         }
     }
     public void addTextEntry(Component text) {
-        this.entries.add(new TextEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight, text));
+        this.entries.add(new TextEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight, text, this.DEFAULT_ENTRY_TEXTURE));
         entryCount++;
         realignEntries();
     }
@@ -253,7 +253,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
         this.entries.add(new TextEntry(this.getX(), this.entryWidth, this.entryHeight, text, entryTexture, onSelect));
     }
     public void addImageEntry(ResourceLocation image, BiConsumer<ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ImageEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight, image, imageRenderer));
+        this.entries.add(new ImageEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight,this.DEFAULT_ENTRY_TEXTURE, image, imageRenderer));
         entryCount++;
         realignEntries();
     }
@@ -268,7 +268,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
         realignEntries();
     }
     public void addCustomEntry(BiConsumer<CustomEntry, CustomEntry.RenderWrapper> customRenderer) {
-        this.entries.add(new CustomEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight, customRenderer));
+        this.entries.add(new CustomEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight,this.DEFAULT_ENTRY_TEXTURE, customRenderer));
         entryCount++;
         realignEntries();
     }
@@ -418,7 +418,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
             return new ScrollableDropDownList(this);
         }
     }
-    public abstract class ListEntry {
+    public static abstract class ListEntry {
         protected int x;
         protected int y = 0;
         protected int width;
@@ -426,10 +426,6 @@ public class ScrollableDropDownList extends AbstractVWidget {
         protected final ResourceLocation entryTexture;
         protected final Runnable onSelected;
 
-
-        protected ListEntry(int x,int width, int height) {
-            this(x, width, height, DEFAULT_ENTRY_TEXTURE);
-        }
         protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture) {
             this(x,width,height,pEntryTexture,() -> {});
         }
@@ -458,17 +454,12 @@ public class ScrollableDropDownList extends AbstractVWidget {
         public void setWidth(int width) { this.width = width; }
         public void setHeight(int height) { this.height = height; }
     }
-    public class TextEntry extends ListEntry {
+    public static class TextEntry extends ListEntry {
         protected final Component text;
-        public TextEntry(int x,int width, int height, Component text) {
-            super(x, width, height);
-            this.text = text;
-        }
         public TextEntry(int x, int width, int height, Component text, ResourceLocation customEntryTexture) {
             super(x, width, height, customEntryTexture);
             this.text = text;
         }
-
         protected TextEntry(int x, int width, int height, Component text, ResourceLocation pEntryTexture, Runnable onSelected) {
             super(x, width, height, pEntryTexture, onSelected);
             this.text = text;
@@ -480,15 +471,10 @@ public class ScrollableDropDownList extends AbstractVWidget {
             guiGraphics.drawString(Minecraft.getInstance().font, text, x, y, 0xFFFFFF, false);
         }
     }
-    public class ImageEntry extends ListEntry {
+    public static class ImageEntry extends ListEntry {
         protected final ResourceLocation imageLocation;
         protected final BiConsumer<ImageEntry, ResourceLocation> renderer;
 
-        public ImageEntry(int x, int width, int height, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
-            super(x, width, height);
-            this.imageLocation = imageLocation;
-            this.renderer = renderer;
-        }
 
         protected ImageEntry(int x, int width, int height, ResourceLocation pEntryTexture, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
             super(x, width, height, pEntryTexture);
@@ -508,11 +494,11 @@ public class ScrollableDropDownList extends AbstractVWidget {
             renderer.accept(this, imageLocation);
         }
     }
-    public class CustomEntry extends ListEntry {
+    public static class CustomEntry extends ListEntry {
         protected final BiConsumer<CustomEntry, RenderWrapper> customRenderer;
 
-        protected CustomEntry(int x, int width, int height, BiConsumer<CustomEntry, RenderWrapper> renderer) {
-            super(x,width, height);
+        protected CustomEntry(int x, int width, int height,ResourceLocation entryTexture, BiConsumer<CustomEntry, RenderWrapper> renderer) {
+            super(x,width, height, entryTexture);
             this.customRenderer = renderer;
         }
 
