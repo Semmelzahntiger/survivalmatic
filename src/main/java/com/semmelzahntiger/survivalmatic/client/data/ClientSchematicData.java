@@ -29,7 +29,7 @@ public class ClientSchematicData {
     }
     public void reloadSchematics() {
         availableSchematics.clear();
-        String[] extensions = {"schem"};
+        String[] extensions = {"schem", "nbt"};
         Collection<File> files = FileUtils.listFiles(Survivalmatic.SCHEMATIC_PATH.toFile(), extensions, false);
         files.forEach(file -> availableSchematics.put(file.getName(), file));
     }
