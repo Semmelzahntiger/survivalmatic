@@ -81,13 +81,14 @@ public class SchematicReader {
      * @return Optional of {@link SchematicInstance SchematicInstance}
      */
     public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
-        if(fileExtension.equals(".schem")) {
+        if(fileExtension.equals("schem")) {
             return readSchemFile(stream, registry);
         }
-        else if(fileExtension.equals(".nbt")) {
+        else if(fileExtension.equals("nbt")) {
             return readNbtFile(stream, registry);
         }
         else {
+            FilenameUtils.getExtension(fileExtension);
             return Optional.empty();
         }
     }
@@ -177,20 +178,42 @@ public class SchematicReader {
     }
     private static Optional<SchematicInstance> readNbtFile(ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
+            HashMap<Integer, BlockState> blockStateMap = new HashMap<>();
+            HashMap<Integer, Item> itemMap = new HashMap<>();
+            HashMap<Item, Integer> requiredItems = new HashMap<>();
             CompoundTag schematic = NbtIo.readCompressed(stream);
             int[] dimensions = schematic.getIntArray("size");
+            int width = dimensions[0];
+            int height = dimensions[1];
+            int length = dimensions[2];
             ListTag blocks = schematic.getList("blocks",Tag.TAG_COMPOUND);
+            int[] flattenedBlockPos = new int[blocks.size()];
             ListTag palette = schematic.getList("palette",Tag.TAG_COMPOUND);
-
-            for (Tag paletteEntry : palette) {
-                CompoundTag block = (CompoundTag) paletteEntry;
-                BlockState state = NbtUtils.readBlockState(registry.lookupOrThrow(Registries.BLOCK), block);
+            for (int i = 0; i < palette.size(); i++) {
+                BlockState blockState = NbtUtils.readBlockState(registry.lookupOrThrow(Registries.BLOCK), palette.getCompound(i));
+                blockStateMap.put(i, blockState);
+                Item item = blockState.getBlock().asItem();
+                if(item != Items.AIR) {
+                    itemMap.put(i, blockState.getBlock().asItem());
+                }
             }
-            
+            for (Tag block : blocks) {
+                CompoundTag compoundTag = (CompoundTag) block;
+                int[] pos = compoundTag.getIntArray("pos");
+                int stateID = compoundTag.getInt("state");
+                int index = to1D(pos[0],pos[1], pos[2],width,length);
+                flattenedBlockPos[index] = stateID;
+                requiredItems.put(itemMap.get(stateID), requiredItems.getOrDefault(itemMap.get(stateID), 0) + 1);
+            }
+            return Optional.of(new SchematicInstance(width, height, length, flattenedBlockPos, new BlockPos(0,0,0), blockStateMap, requiredItems));
         }
-        catch (IOException exception) {
-            Survivalmatic.LOGGER.error("Failed to read schematic", exception);
+        catch (Exception e) {
+            Survivalmatic.LOGGER.error("Failed to read schematic", e);
         }
+        return Optional.empty();
+    }
+    private static int to1D(int x, int y, int z, int width, int length) {
+        return (y * width * length) + (z * width) + x;
     }
 
     /**
@@ -249,7 +272,7 @@ public class SchematicReader {
                 if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) {
                     return Blocks.AIR.defaultBlockState();
                 }
-                int index = (y * width * length) + (z * width) + x;
+                int index = to1D(x,y,z,width,length);
                 int paletteId = blockData[index];
                 return palette.getOrDefault(paletteId, Blocks.AIR.defaultBlockState());
             }
