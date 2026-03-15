@@ -43,7 +43,7 @@ public class ServerSchematicHandler {
     }
 
     private final HashMap<UUID, SchematicBuilder> queuedSchematics = new HashMap<>();
-
+    // Todo: Add Config for Size restriction
     private void addRequest(UUID requestUUID,String schematicName, String fileExtension, String uploaderName, int byteCount, GlobalPos pos) {
         SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, uploaderName, fileExtension, byteCount, pos);
         queuedSchematics.put(requestUUID, schematicBuilder);
