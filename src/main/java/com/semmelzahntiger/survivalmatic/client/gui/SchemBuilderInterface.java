@@ -53,6 +53,7 @@ public class SchemBuilderInterface extends Screen {
                     }
                 }
         ).bounds(this.width / 2, 20, (int) (this.width * 0.1f), (int) (this.height * 0.1f)).build();
+        Button uploadButton = Button.builder().build();
         addRenderableWidget(loadButton);
 //        ScrollableList scrollableList = ScrollableList.Builder.of(0.5f, 0.1f, 0.4f, 0.1f, 5, this, Component.empty())
 //                .setBorderMargins(0.03f, 0.03f, 0.04f, 0.04f)
