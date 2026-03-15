@@ -37,11 +37,15 @@ public class Survivalmatic
         LOGGER.info("Ahleleleleahlelas: " + (Ahleleleleahlelas-21));
         try {
             if(!Files.exists(SCHEMATIC_PATH)) {
+                Survivalmatic.LOGGER.info("Schematic Directory does not exist. Creating it...");
                 Files.createDirectory(SCHEMATIC_PATH);
+            }
+            else {
+                Survivalmatic.LOGGER.info("Schematic Directory already exists");
             }
         }
         catch (IOException e) {
-            Survivalmatic.LOGGER.error("Couldn't create schematic directory", e);
+            Survivalmatic.LOGGER.error("Couldn't create or scan schematic directory", e);
         }
     }
 }

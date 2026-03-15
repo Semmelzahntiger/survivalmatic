@@ -7,15 +7,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
-import javax.swing.*;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
-public class ScrollableList extends AbstractVWidget {
+public class ScrollableList extends AbstractVWidget implements IScrollableList {
     public final ResourceLocation defaultEntryTexture;
     public final ResourceLocation background;
     public final ResourceLocation border;
@@ -32,7 +30,7 @@ public class ScrollableList extends AbstractVWidget {
     protected int entryHeight;
     protected int listHeight;
 
-    protected final List<ScrollableDropDownList.ListEntry> entries = new ArrayList<>();
+    protected final List<IScrollableList.ListEntry> entries = new ArrayList<>();
     protected int entryCount = 0;
     protected int currentYScroll = 0;
     protected int scrollIndexShift = 0;
@@ -67,7 +65,7 @@ public class ScrollableList extends AbstractVWidget {
         this.offsetForScrollSlider = entryCount > visibleEntries ? listHeight / (entryCount - visibleEntries) : 0;
         guiGraphics.blit(background, this.getX(), this.getY(), this.getWidth(), this.getHeight(),0,0,this.getWidth(),this.getHeight(), this.getWidth(), this.getHeight());
         guiGraphics.enableScissor(this.getX(), this.getY(), this.getXBound(), this.getYBound());
-        for (ScrollableDropDownList.ListEntry entry : entries) {
+        for (IScrollableList.ListEntry entry : entries) {
             entry.render(guiGraphics, i, i1, v);
         }
         guiGraphics.disableScissor();
@@ -77,47 +75,71 @@ public class ScrollableList extends AbstractVWidget {
                 this.getWidth() + borderRightMargin, this.getHeight() + borderBottomMargin);
         RenderSystem.disableBlend();
     }
-    public void addTextEntry(Component text) {
-        this.entries.add(new ScrollableDropDownList.TextEntry(this.getX(), this.getWidth(), this.entryHeight, text, this.defaultEntryTexture));
-        entryCount++;
-        realignEntries();
+    @Override
+    public int getVisibleEntries() {
+        return visibleEntries;
     }
-    public void addTextEntry(Component text, ResourceLocation entryTexture) {
-        this.entries.add(new ScrollableDropDownList.TextEntry(this.getX(), this.getWidth(), this.entryHeight, text, entryTexture));
-        entryCount++;
-        realignEntries();
+
+    @Override
+    public int getEntryCount() {
+        return entryCount;
     }
-    public void addTextEntry(Component text, ResourceLocation entryTexture, Runnable onSelect) {
-        this.entries.add(new ScrollableDropDownList.TextEntry(this.getX(), this.getWidth(), this.entryHeight, text, entryTexture, onSelect));
+
+    @Override
+    public void setEntryCount(int entryCount) {
+        this.entryCount = entryCount;
     }
-    public void addImageEntry(ResourceLocation image, BiConsumer<ScrollableDropDownList.ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ScrollableDropDownList.ImageEntry(this.getX(), this.getWidth(), this.entryHeight, this.defaultEntryTexture, image, imageRenderer));
-        entryCount++;
-        realignEntries();
+
+    @Override
+    public int getIndexShift() {
+        return scrollIndexShift;
     }
-    public void addImageEntry(ResourceLocation image, ResourceLocation entryTexture, BiConsumer<ScrollableDropDownList.ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ScrollableDropDownList.ImageEntry(this.getX(), this.getWidth(), this.entryHeight,entryTexture, image, imageRenderer));
-        entryCount++;
-        realignEntries();
+
+    @Override
+    public void setIndexShift(int shift) {
+        this.scrollIndexShift = shift;
     }
-    public void addImageEntry(ResourceLocation image, ResourceLocation entryTexture,Runnable onSelect, BiConsumer<ScrollableDropDownList.ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ScrollableDropDownList.ImageEntry(this.getX(), this.getWidth(), this.entryHeight,entryTexture, onSelect, image, imageRenderer));
-        entryCount++;
-        realignEntries();
+
+    @Override
+    public int getEntryXPosition() {
+        return this.getX();
     }
-    public void addCustomEntry(BiConsumer<ScrollableDropDownList.CustomEntry, ScrollableDropDownList.CustomEntry.RenderWrapper> customRenderer) {
-        this.entries.add(new ScrollableDropDownList.CustomEntry(this.getX(), this.getWidth(), this.entryHeight, this.defaultEntryTexture, customRenderer));
-        entryCount++;
-        realignEntries();
+
+    @Override
+    public int getStartOfList() {
+        return this.getY();
     }
-    public void addEntry(ScrollableDropDownList.ListEntry entry) {
-        this.entries.add(entry);
+
+    @Override
+    public int getEntryWidth() {
+        return this.getWidth();
     }
-    protected void realignEntries() {
-        for (int i = 0; i < entries.size(); i++) {
-            entries.get(i).setY((int) (this.getY() + i*entryHeight + currentYScroll));
-        }
+
+    @Override
+    public int getEntryHeight() {
+        return entryHeight;
     }
+
+    @Override
+    public int getScroll() {
+        return currentYScroll;
+    }
+
+    @Override
+    public void setScroll(int scroll) {
+        this.currentYScroll = scroll;
+    }
+
+    @Override
+    public ResourceLocation getDefaultEntryTexture() {
+        return defaultEntryTexture;
+    }
+
+    @Override
+    public List<ListEntry> getEntries() {
+        return entries;
+    }
+
     @Override
     public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
         if(isHovered) {
@@ -125,15 +147,6 @@ public class ScrollableList extends AbstractVWidget {
             return true;
         }
         return false;
-    }
-    protected void scroll(double scrollAmount) {
-        int sign = (int) Math.signum(scrollAmount);
-        int maxDiff = entryCount - visibleEntries;
-        if(maxDiff > 0) {
-            scrollIndexShift = Mth.clamp(scrollIndexShift - sign, 0, maxDiff);
-            currentYScroll = -(scrollIndexShift * entryHeight);
-        }
-        realignEntries();
     }
 
     public static class Builder {

@@ -5,18 +5,20 @@ import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.*;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,8 +33,9 @@ public class SchematicReader {
     public static Optional<StreamableSchematicInstance> getStreamableInstance(File file) {
         try(FileInputStream stream = new FileInputStream(file)) {
             String name = file.getName();
+            String extension = FilenameUtils.getExtension(name);
             byte[] bytes = stream.readAllBytes();
-            return Optional.of(new StreamableSchematicInstance(name, bytes));
+            return Optional.of(new StreamableSchematicInstance(name,extension, bytes));
         }
         catch(IOException e) {
             Survivalmatic.LOGGER.error("Couldn't read schematic from Disk", e);
@@ -44,6 +47,14 @@ public class SchematicReader {
         }
     }
 
+    /**
+     * Asynchronous Version of {@link SchematicReader#getStreamableInstance(File)}
+     * @return Completable Future containing the Optional of {@link StreamableSchematicInstance StreamableSchematicInstance}
+     */
+    @OnlyIn (Dist.CLIENT)
+    public static CompletableFuture<Optional<StreamableSchematicInstance>> getStreamableInstanceAsync(File file) {
+        return CompletableFuture.supplyAsync(() -> getStreamableInstance(file));
+    }
     /**
      * Only reads the Schematic as a {@link ByteArrayInputStream}
      * @param file schematic file
@@ -69,7 +80,18 @@ public class SchematicReader {
      * @param registry RegistryAccess from the Server in order to retrieve {@link BlockState BlockStates} and the required {@link Item Items} for the Schematic
      * @return Optional of {@link SchematicInstance SchematicInstance}
      */
-    public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, HolderLookup.Provider registry) {
+    public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
+        if(fileExtension.equals(".schem")) {
+            return readSchemFile(stream, registry);
+        }
+        else if(fileExtension.equals(".nbt")) {
+            return readNbtFile(stream, registry);
+        }
+        else {
+            return Optional.empty();
+        }
+    }
+    private static Optional<SchematicInstance> readSchemFile(ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
             CompoundTag schematicData = NbtIo.readCompressed(stream);
             int version = schematicData.getInt("Version");
@@ -153,13 +175,30 @@ public class SchematicReader {
             return Optional.empty();
         }
     }
+    private static Optional<SchematicInstance> readNbtFile(ByteArrayInputStream stream, HolderLookup.Provider registry) {
+        try {
+            CompoundTag schematic = NbtIo.readCompressed(stream);
+            int[] dimensions = schematic.getIntArray("size");
+            ListTag blocks = schematic.getList("blocks",Tag.TAG_COMPOUND);
+            ListTag palette = schematic.getList("palette",Tag.TAG_COMPOUND);
+
+            for (Tag paletteEntry : palette) {
+                CompoundTag block = (CompoundTag) paletteEntry;
+                BlockState state = NbtUtils.readBlockState(registry.lookupOrThrow(Registries.BLOCK), block);
+            }
+            
+        }
+        catch (IOException exception) {
+            Survivalmatic.LOGGER.error("Failed to read schematic", exception);
+        }
+    }
 
     /**
-     * Asynchronous Version of {@link SchematicReader#readSchematicFromBuffer(ByteArrayInputStream, HolderLookup.Provider)}
+     * Asynchronous Version of {@link SchematicReader#readSchematicFromBuffer(ByteArrayInputStream, String, HolderLookup.Provider)}
      * @return {@link CompletableFuture} containing the Optional of {@link SchematicInstance SchematicInstance}
      */
-    public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(ByteArrayInputStream stream, HolderLookup.Provider registry) {
-        return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(stream, registry));
+    public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
+        return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(stream, fileExtension, registry));
     }
 
     /**
@@ -172,7 +211,7 @@ public class SchematicReader {
     public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromFileAsync(File file, HolderLookup.Provider registry) {
         return CompletableFuture.supplyAsync(() -> {
             Optional<ByteArrayInputStream> stream = readFileAsInputStream(file);
-            return stream.isPresent() ? readSchematicFromBuffer(stream.get(), registry) : Optional.empty();
+            return stream.isPresent() ? readSchematicFromBuffer(stream.get(),FilenameUtils.getExtension(file.getName()), registry) : Optional.empty();
         });
     }
 
@@ -183,15 +222,16 @@ public class SchematicReader {
     @OnlyIn(Dist.CLIENT)
     public static class StreamableSchematicInstance {
         public final String name;
+        public final String extension;
         public final int dataSize;
         public final byte[] data;
-        public StreamableSchematicInstance(String name, byte[] data) {
+        public StreamableSchematicInstance(String name, String extension, byte[] data) {
             this.name = name;
+            this.extension = extension;
             this.dataSize = data.length;
             this.data = data;
         }
     }
-
     /**
      * Common/Server Side representation of a schematic, contains the actual information from the Schematic.
      * Either instantiated from {@link SchematicReader#getSchematicFromFileAsync(File, HolderLookup.Provider)} or built from {@link ServerSchematicHandler ServerSchematicHandler}

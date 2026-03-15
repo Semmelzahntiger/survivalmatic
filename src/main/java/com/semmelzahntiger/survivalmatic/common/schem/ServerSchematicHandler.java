@@ -44,17 +44,17 @@ public class ServerSchematicHandler {
 
     private final HashMap<UUID, SchematicBuilder> queuedSchematics = new HashMap<>();
 
-    private void addRequest(UUID requestUUID,String schematicName, String uploaderName, int byteCount, GlobalPos pos) {
-        SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, uploaderName, byteCount, pos);
+    private void addRequest(UUID requestUUID,String schematicName, String fileExtension, String uploaderName, int byteCount, GlobalPos pos) {
+        SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, uploaderName, fileExtension, byteCount, pos);
         queuedSchematics.put(requestUUID, schematicBuilder);
     }
-    public void incomingInitialRequest(UUID requestUUID,String schematicName, int byteCount, GlobalPos blockEntityPos, MinecraftServer server, UUID playerUUID) {
+    public void incomingInitialRequest(UUID requestUUID,String schematicName,String fileExtension, int byteCount, GlobalPos blockEntityPos, MinecraftServer server, UUID playerUUID) {
         ServerPlayer requester = server.getPlayerList().getPlayer(playerUUID);
         ResourceKey<Level> level = blockEntityPos.dimension();
         BlockEntity blockEntity = server.getLevel(level).getBlockEntity(blockEntityPos.pos());
         if (blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.newIncomingRequest()) {
             sendHeaderResponse(requestUUID, requester, true);
-            addRequest(requestUUID,schematicName,requester.getName().getString(), byteCount, blockEntityPos);
+            addRequest(requestUUID,schematicName,fileExtension, requester.getName().getString(), byteCount, blockEntityPos);
         }
         else {
             sendHeaderResponse(requestUUID, requester, false);
@@ -104,6 +104,7 @@ public class ServerSchematicHandler {
     }
     public static class SchematicBuilder {
         private final String name;
+        private final String fileExtension;
         private final String uploader;
         private final int byteCount;
         private final List<Byte> bytes = new ArrayList<>();
@@ -111,8 +112,9 @@ public class ServerSchematicHandler {
 
         private int ticksSinceLastUpdate = 0;
 
-        public SchematicBuilder(String schematicName, String uploader, int byteCount, GlobalPos blockEntityPos) {
+        public SchematicBuilder(String schematicName, String fileExtension, String uploader, int byteCount, GlobalPos blockEntityPos) {
             this.name = schematicName;
+            this.fileExtension = fileExtension;
             this.uploader = uploader;
             this.byteCount = byteCount;
             this.blockEntityPos = blockEntityPos;
@@ -126,7 +128,7 @@ public class ServerSchematicHandler {
         }
         public void buildAndPassToBlockEntity(MinecraftServer server) {
             HolderLookup.Provider registry = server.registryAccess();
-            CompletableFuture<Optional<SchematicReader.SchematicInstance>> schematicFutureOptional = SchematicReader.getSchematicFromBufferAsync(new ByteArrayInputStream(ArrayUtils.toPrimitive(bytes.toArray(new Byte[0]))), registry);
+            CompletableFuture<Optional<SchematicReader.SchematicInstance>> schematicFutureOptional = SchematicReader.getSchematicFromBufferAsync(new ByteArrayInputStream(ArrayUtils.toPrimitive(bytes.toArray(new Byte[0]))), fileExtension, registry);
             schematicFutureOptional.thenAccept(optional -> optional.ifPresent(instance -> {
                 ResourceKey<Level> level = this.blockEntityPos.dimension();
                 BlockPos pos = blockEntityPos.pos();

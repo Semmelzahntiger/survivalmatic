@@ -1,7 +1,6 @@
 package com.semmelzahntiger.survivalmatic.client.gui.widgets;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -14,7 +13,7 @@ import java.util.function.BiConsumer;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
-public class ScrollableDropDownList extends AbstractVWidget {
+public class ScrollableDropDownList extends AbstractVWidget implements IScrollableList {
     // Debug
     protected final ResourceLocation AREA = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/marked_area.png");
 
@@ -59,16 +58,16 @@ public class ScrollableDropDownList extends AbstractVWidget {
     protected int listHeight;
     protected boolean isOpened = false;
 
-    protected double currentYScroll = 0;
+    protected int currentYScroll = 0;
     protected int scrollIndexShift = 0;
 
     protected int scrollSliderSize;
     protected int offsetForScrollSlider;
-    List<ListEntry> entries = new ArrayList<>();
+    List<IScrollableList.ListEntry> entries = new ArrayList<>();
     protected int entryCount = 0;
 
     protected int hoveredIndex = 0;
-    ListEntry selectedEntry = null;
+    IScrollableList.ListEntry selectedEntry = null;
 
     protected ScrollableDropDownList(Builder builder) {
         super(builder.x,  builder.y, builder.width, builder.height, builder.screen, builder.message);
@@ -137,7 +136,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
 
         if(isOpened) {
             guiGraphics.enableScissor(this.getX(), listStart, this.getXBound(), this.listStart+ this.listHeight);
-            for (ListEntry entry : entries) {
+            for (IScrollableList.ListEntry entry : entries) {
                 entry.render(guiGraphics, i, i1, v);
             }
             guiGraphics.disableScissor();
@@ -176,19 +175,73 @@ public class ScrollableDropDownList extends AbstractVWidget {
         this.setHeightWithoutUpdatingList(closedHeight);
         currentYScroll = 0;
     }
-    protected void realignEntries() {
-        for (int i = 0; i < entries.size(); i++) {
-            entries.get(i).setY((int) (listStart + i*entryHeight + currentYScroll));
-        }
+    public ListEntry getSelectedEntry() {
+        return selectedEntry;
     }
-    protected void scroll(double scrollAmount) {
-        int sign = (int) Math.signum(scrollAmount);
-        int maxDiff = entryCount - visibleEntries;
-        if(maxDiff > 0) {
-            scrollIndexShift = Mth.clamp(scrollIndexShift - sign, 0, maxDiff);
-            currentYScroll = -(scrollIndexShift * entryHeight);
-        }
-        realignEntries();
+
+    @Override
+    public List<ListEntry> getEntries() {
+        return entries;
+    }
+
+    @Override
+    public int getVisibleEntries() {
+        return visibleEntries;
+    }
+
+    @Override
+    public int getEntryCount() {
+        return entryCount;
+    }
+
+    @Override
+    public void setEntryCount(int entryCount) {
+        this.entryCount = entryCount;
+    }
+
+    @Override
+    public int getIndexShift() {
+        return scrollIndexShift;
+    }
+
+    @Override
+    public void setIndexShift(int shift) {
+        this.scrollIndexShift = shift;
+    }
+
+    @Override
+    public int getEntryXPosition() {
+        return entryOffsettedX;
+    }
+
+    @Override
+    public int getStartOfList() {
+        return listStart;
+    }
+
+    @Override
+    public int getEntryWidth() {
+        return entryWidth;
+    }
+
+    @Override
+    public int getEntryHeight() {
+        return entryHeight;
+    }
+
+    @Override
+    public int getScroll() {
+        return currentYScroll;
+    }
+
+    @Override
+    public void setScroll(int scroll) {
+        this.currentYScroll = scroll;
+    }
+
+    @Override
+    public ResourceLocation getDefaultEntryTexture() {
+        return DEFAULT_ENTRY_TEXTURE;
     }
     // -1 means not hovering over any entry
     protected int isHoveringOverIndex(int mouseX, int mouseY) {
@@ -239,43 +292,6 @@ public class ScrollableDropDownList extends AbstractVWidget {
             close();
         }
     }
-    public void addTextEntry(Component text) {
-        this.entries.add(new TextEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight, text, this.DEFAULT_ENTRY_TEXTURE));
-        entryCount++;
-        realignEntries();
-    }
-    public void addTextEntry(Component text, ResourceLocation entryTexture) {
-        this.entries.add(new TextEntry(this.getX(), this.entryWidth, this.entryHeight, text, entryTexture));
-        entryCount++;
-        realignEntries();
-    }
-    public void addTextEntry(Component text, ResourceLocation entryTexture, Runnable onSelect) {
-        this.entries.add(new TextEntry(this.getX(), this.entryWidth, this.entryHeight, text, entryTexture, onSelect));
-    }
-    public void addImageEntry(ResourceLocation image, BiConsumer<ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ImageEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight,this.DEFAULT_ENTRY_TEXTURE, image, imageRenderer));
-        entryCount++;
-        realignEntries();
-    }
-    public void addImageEntry(ResourceLocation image, ResourceLocation entryTexture, BiConsumer<ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ImageEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight,entryTexture, image, imageRenderer));
-        entryCount++;
-        realignEntries();
-    }
-    public void addImageEntry(ResourceLocation image, ResourceLocation entryTexture,Runnable onSelect, BiConsumer<ImageEntry, ResourceLocation> imageRenderer) {
-        this.entries.add(new ImageEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight,entryTexture, onSelect, image, imageRenderer));
-        entryCount++;
-        realignEntries();
-    }
-    public void addCustomEntry(BiConsumer<CustomEntry, CustomEntry.RenderWrapper> customRenderer) {
-        this.entries.add(new CustomEntry(this.getX() + entryCenteringOffsetX, this.entryWidth, this.entryHeight,this.DEFAULT_ENTRY_TEXTURE, customRenderer));
-        entryCount++;
-        realignEntries();
-    }
-    public void addEntry(ListEntry entry) {
-        this.entries.add(entry);
-    }
-
     @Override
     public void setX(int pX) {
         super.setX(pX);
@@ -299,14 +315,7 @@ public class ScrollableDropDownList extends AbstractVWidget {
         super.setHeight(value);
         recalculateDynamicData();
     }
-    protected void updateEntries() {
-        for (ListEntry entry : entries) {
-            entry.setX(entryOffsettedX);
-            entry.setWidth(entryWidth);
-            entry.setHeight(entryHeight);
-        }
-        realignEntries();
-    }
+
     public void setHeightWithoutUpdatingList(int value) {
         super.setHeight(value);
     }
@@ -417,96 +426,5 @@ public class ScrollableDropDownList extends AbstractVWidget {
         public ScrollableDropDownList build() {
             return new ScrollableDropDownList(this);
         }
-    }
-    public static abstract class ListEntry {
-        protected int x;
-        protected int y = 0;
-        protected int width;
-        protected int height;
-        protected final ResourceLocation entryTexture;
-        protected final Runnable onSelected;
-
-        protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture) {
-            this(x,width,height,pEntryTexture,() -> {});
-        }
-        protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture, Runnable onSelected) {
-            this.x = x;
-            this.width = width;
-            this.height = height;
-            this.entryTexture = pEntryTexture;
-            this.onSelected = onSelected;
-        }
-        public ResourceLocation getEntryTexture() {
-            return entryTexture;
-        }
-        public void render(GuiGraphics pGraphics, int mouseX, int mouseY, float partialTick) {
-            renderInternal(pGraphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(), mouseX, mouseY, partialTick);
-        }
-        public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
-            guiGraphics.blit(getEntryTexture(), x, y, width, height,0,0, 256, 112, 256, 112);
-        }
-        public int getX() { return x; }
-        public int getY() { return y; }
-        public void setX(int x) { this.x = x; }
-        public void setY(int y) { this.y = y; }
-        public int getWidth() { return width; }
-        public int getHeight() { return height; }
-        public void setWidth(int width) { this.width = width; }
-        public void setHeight(int height) { this.height = height; }
-    }
-    public static class TextEntry extends ListEntry {
-        protected final Component text;
-        public TextEntry(int x, int width, int height, Component text, ResourceLocation customEntryTexture) {
-            super(x, width, height, customEntryTexture);
-            this.text = text;
-        }
-        protected TextEntry(int x, int width, int height, Component text, ResourceLocation pEntryTexture, Runnable onSelected) {
-            super(x, width, height, pEntryTexture, onSelected);
-            this.text = text;
-        }
-
-        @Override
-        public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
-            super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
-            guiGraphics.drawString(Minecraft.getInstance().font, text, x, y, 0xFFFFFF, false);
-        }
-    }
-    public static class ImageEntry extends ListEntry {
-        protected final ResourceLocation imageLocation;
-        protected final BiConsumer<ImageEntry, ResourceLocation> renderer;
-
-
-        protected ImageEntry(int x, int width, int height, ResourceLocation pEntryTexture, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
-            super(x, width, height, pEntryTexture);
-            this.imageLocation = imageLocation;
-            this.renderer = renderer;
-        }
-
-        protected ImageEntry(int x, int width, int height, ResourceLocation pEntryTexture, Runnable onSelected, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
-            super(x, width, height, pEntryTexture, onSelected);
-            this.imageLocation = imageLocation;
-            this.renderer = renderer;
-        }
-
-        @Override
-        public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
-            super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
-            renderer.accept(this, imageLocation);
-        }
-    }
-    public static class CustomEntry extends ListEntry {
-        protected final BiConsumer<CustomEntry, RenderWrapper> customRenderer;
-
-        protected CustomEntry(int x, int width, int height,ResourceLocation entryTexture, BiConsumer<CustomEntry, RenderWrapper> renderer) {
-            super(x,width, height, entryTexture);
-            this.customRenderer = renderer;
-        }
-
-        @Override
-        public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
-            super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
-            customRenderer.accept(this, new RenderWrapper(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick));
-        }
-        public record RenderWrapper(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {}
     }
 }

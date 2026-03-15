@@ -18,15 +18,16 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBlock {
     public SchemBuilder(Properties pProperties) {
         super(pProperties);
     }
-
+    @SuppressWarnings("deprecation")
     @Override
-    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+    public @NotNull InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         pPlayer.getItemInHand(pHand).getItem();
         if(pLevel.isClientSide){
             Minecraft.getInstance().setScreen(new SchemBuilderInterface(Component.empty()));
