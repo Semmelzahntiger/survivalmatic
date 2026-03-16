@@ -7,11 +7,11 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public abstract class AbstractVWidget extends AbstractWidget {
-    private final Screen parentScreen;
-    private float xRelative;
-    private float yRelative;
-    private float widthRelative;
-    private float heightRelative;
+    protected final Screen parentScreen;
+    protected float xRelative;
+    protected float yRelative;
+    protected float widthRelative;
+    protected float heightRelative;
     public AbstractVWidget(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen screen, Component pMessage) {
         super((int) (screen.width * xRelative), (int) (screen.height * yRelative), (int) (screen.width * widthRelative), (int) (screen.height * heightRelative), pMessage);
         this.parentScreen = screen;
@@ -19,6 +19,9 @@ public abstract class AbstractVWidget extends AbstractWidget {
         this.yRelative = yRelative;
         this.widthRelative = widthRelative;
         this.heightRelative = heightRelative;
+    }
+    public <T extends WidgetBuilder<T>> AbstractVWidget(WidgetBuilder<T> builder) {
+       this(builder.xRelative, builder.yRelative, builder.widthRelative, builder.heightRelative, builder.parentScreen, builder.pMessage);
     }
     public int getXBound() {
         return getX() + getWidth();
@@ -71,6 +74,31 @@ public abstract class AbstractVWidget extends AbstractWidget {
 
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+
+    }
+    public static class WidgetBuilder<T extends WidgetBuilder<T>> {
+        final float xRelative;
+        final float yRelative;
+        final float widthRelative;
+        final float heightRelative;
+        final Screen parentScreen;
+        Component pMessage;
+
+        public WidgetBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+            this.xRelative = xRelative;
+            this.yRelative = yRelative;
+            this.widthRelative = widthRelative;
+            this.heightRelative = heightRelative;
+            this.parentScreen = parentScreen;
+        }
+        public T setMessage(Component pMessage) {
+            this.pMessage = pMessage;
+            return self();
+        }
+        @SuppressWarnings("unchecked")
+        T self() {
+            return (T) this;
+        }
 
     }
 }
