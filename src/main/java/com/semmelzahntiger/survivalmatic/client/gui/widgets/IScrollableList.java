@@ -6,12 +6,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import org.w3c.dom.Text;
 
 import java.util.List;
 import java.util.function.BiConsumer;
 
 public interface IScrollableList {
-    List<ListEntry> getEntries();
+    List<ListEntry<?>> getEntries();
     int getVisibleEntries();
     int getEntryCount();
     void setEntryCount(int entryCount);
@@ -44,7 +45,12 @@ public interface IScrollableList {
         setEntryCount(getEntryCount() + 1);
         realignEntries();
     }
-    default void addTextEntry(Component text, ResourceLocation entryTexture, Runnable onSelect) {
+    default void addTextEntry(Component text, OnSelect<TextEntry> onSelect) {
+        getEntries().add(new IScrollableList.TextEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), text, getDefaultEntryTexture(), onSelect));
+        setEntryCount(getEntryCount() + 1);
+        realignEntries();
+    }
+    default void addTextEntry(Component text, ResourceLocation entryTexture, OnSelect<TextEntry> onSelect) {
         getEntries().add(new IScrollableList.TextEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), text, entryTexture, onSelect));
         setEntryCount(getEntryCount() + 1);
         realignEntries();
@@ -54,13 +60,18 @@ public interface IScrollableList {
         setEntryCount(getEntryCount() + 1);
         realignEntries();
     }
-    default void addImageEntry(ResourceLocation image, ResourceLocation entryTexture, BiConsumer<IScrollableList.ImageEntry, ResourceLocation> imageRenderer) {
-        getEntries().add(new IScrollableList.ImageEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), getDefaultEntryTexture(), image, imageRenderer));
+    default void addImageEntry(ResourceLocation image, OnSelect<ImageEntry> onSelect, BiConsumer<IScrollableList.ImageEntry, ResourceLocation> imageRenderer) {
+        getEntries().add(new IScrollableList.ImageEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), getDefaultEntryTexture(), onSelect, image, imageRenderer));
         setEntryCount(getEntryCount() + 1);
         realignEntries();
     }
-    default void addImageEntry(ResourceLocation image, ResourceLocation entryTexture, Runnable onSelect, BiConsumer<IScrollableList.ImageEntry, ResourceLocation> imageRenderer) {
-        getEntries().add(new IScrollableList.ImageEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), getDefaultEntryTexture(),onSelect, image, imageRenderer));
+    default void addImageEntry(ResourceLocation image, ResourceLocation entryTexture, BiConsumer<IScrollableList.ImageEntry, ResourceLocation> imageRenderer) {
+        getEntries().add(new IScrollableList.ImageEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), entryTexture, image, imageRenderer));
+        setEntryCount(getEntryCount() + 1);
+        realignEntries();
+    }
+    default void addImageEntry(ResourceLocation image, ResourceLocation entryTexture, OnSelect<ImageEntry> onSelect, BiConsumer<IScrollableList.ImageEntry, ResourceLocation> imageRenderer) {
+        getEntries().add(new IScrollableList.ImageEntry(getEntryXPosition(), getEntryWidth(), getEntryHeight(), entryTexture,onSelect, image, imageRenderer));
         setEntryCount(getEntryCount() + 1);
         realignEntries();
     }
@@ -69,13 +80,13 @@ public interface IScrollableList {
         setEntryCount(getEntryCount() + 1);
         realignEntries();
     }
-    default void addEntry(IScrollableList.ListEntry entry) {
+    default <T extends ListEntry<T>>void addEntry(IScrollableList.ListEntry<T> entry) {
         getEntries().add(entry);
         setEntryCount(getEntryCount() + 1);
         realignEntries();
     }
     default void updateEntries() {
-        for (ListEntry entry : getEntries()) {
+        for (ListEntry<?> entry : getEntries()) {
             entry.setX(getEntryXPosition());
             entry.setWidth(getEntryWidth());
             entry.setHeight(getEntryHeight());
@@ -83,7 +94,7 @@ public interface IScrollableList {
         realignEntries();
     }
     default void realignEntries() {
-        List<ListEntry> entries = getEntries();
+        List<ListEntry<?>> entries = getEntries();
         for (int i = 0; i < entries.size(); i++) {
             entries.get(i).setY(getStartOfList() + i*getEntryHeight() + getScroll());
         }
@@ -92,20 +103,22 @@ public interface IScrollableList {
         getEntries().clear();
         realignEntries();
     }
-
-
-    abstract class ListEntry {
+    @FunctionalInterface
+    interface OnSelect<T extends ListEntry<T>> {
+        void onSelect(T entry);
+    }
+    abstract class ListEntry<T extends ListEntry<T>> {
         protected int x;
         protected int y = 0;
         protected int width;
         protected int height;
         protected final ResourceLocation entryTexture;
-        protected final Runnable onSelected;
+        protected final OnSelect<T> onSelected;
 
         protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture) {
-            this(x,width,height,pEntryTexture,() -> {});
+            this(x,width,height,pEntryTexture,entry -> {});
         }
-        protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture, Runnable onSelected) {
+        protected ListEntry(int x, int width, int height, ResourceLocation pEntryTexture, OnSelect<T> onSelected) {
             this.x = x;
             this.width = width;
             this.height = height;
@@ -121,6 +134,7 @@ public interface IScrollableList {
         public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
             guiGraphics.blit(getEntryTexture(), x, y, width, height,0,0, 256, 112, 256, 112);
         }
+        public abstract void onSelected();
         public int getX() { return x; }
         public int getY() { return y; }
         public void setX(int x) { this.x = x; }
@@ -131,13 +145,13 @@ public interface IScrollableList {
         public void setHeight(int height) { this.height = height; }
     }
 
-    class TextEntry extends ListEntry {
+    class TextEntry extends ListEntry<TextEntry> {
         public final Component text;
         public TextEntry(int x, int width, int height, Component text, ResourceLocation customEntryTexture) {
             super(x, width, height, customEntryTexture);
             this.text = text;
         }
-        protected TextEntry(int x, int width, int height, Component text, ResourceLocation pEntryTexture, Runnable onSelected) {
+        protected TextEntry(int x, int width, int height, Component text, ResourceLocation pEntryTexture, OnSelect<TextEntry> onSelected) {
             super(x, width, height, pEntryTexture, onSelected);
             this.text = text;
         }
@@ -153,9 +167,14 @@ public interface IScrollableList {
             guiGraphics.drawCenteredString(Minecraft.getInstance().font, text, (int) ((x + (float) width / 2) / scale), (int) ((y + (float) height / 2) / scale), 0xFFFFFF);
             pose.popPose();
         }
+
+        @Override
+        public void onSelected() {
+            onSelected.onSelect(this);
+        }
     }
 
-    class ImageEntry extends ListEntry {
+    class ImageEntry extends ListEntry<ImageEntry> {
         protected final ResourceLocation imageLocation;
         protected final BiConsumer<ImageEntry, ResourceLocation> renderer;
 
@@ -166,7 +185,7 @@ public interface IScrollableList {
             this.renderer = renderer;
         }
 
-        protected ImageEntry(int x, int width, int height, ResourceLocation pEntryTexture, Runnable onSelected, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
+        protected ImageEntry(int x, int width, int height, ResourceLocation pEntryTexture, OnSelect<ImageEntry> onSelected, ResourceLocation imageLocation, BiConsumer<ImageEntry, ResourceLocation> renderer) {
             super(x, width, height, pEntryTexture, onSelected);
             this.imageLocation = imageLocation;
             this.renderer = renderer;
@@ -177,9 +196,14 @@ public interface IScrollableList {
             super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
             renderer.accept(this, imageLocation);
         }
+
+        @Override
+        public void onSelected() {
+            onSelected.onSelect(this);
+        }
     }
 
-    class CustomEntry extends ListEntry {
+    class CustomEntry extends ListEntry<CustomEntry> {
         protected final BiConsumer<CustomEntry, RenderWrapper> customRenderer;
 
         protected CustomEntry(int x, int width, int height,ResourceLocation entryTexture, BiConsumer<CustomEntry, RenderWrapper> renderer) {
@@ -192,6 +216,13 @@ public interface IScrollableList {
             super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
             customRenderer.accept(this, new RenderWrapper(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick));
         }
+
+        @Override
+        public void onSelected() {
+            onSelected.onSelect(this);
+        }
+
         public record RenderWrapper(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {}
     }
+
 }

@@ -63,11 +63,11 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
 
     protected int scrollSliderSize;
     protected int offsetForScrollSlider;
-    List<IScrollableList.ListEntry> entries = new ArrayList<>();
+    List<IScrollableList.ListEntry<?>> entries = new ArrayList<>();
     protected int entryCount = 0;
 
     protected int hoveredIndex = 0;
-    IScrollableList.ListEntry selectedEntry = null;
+    IScrollableList.ListEntry<?> selectedEntry = null;
 
     protected ScrollableDropDownList(Builder builder) {
         super(builder.x,  builder.y, builder.width, builder.height, builder.screen, builder.message);
@@ -175,12 +175,12 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         this.setHeightWithoutUpdatingList(closedHeight);
         currentYScroll = 0;
     }
-    public ListEntry getSelectedEntry() {
+    public ListEntry<?> getSelectedEntry() {
         return selectedEntry;
     }
 
     @Override
-    public List<ListEntry> getEntries() {
+    public List<ListEntry<?>> getEntries() {
         return entries;
     }
 
@@ -288,7 +288,7 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         int clickedIndex = hoveredIndex + scrollIndexShift;
         if(clickedIndex < entries.size()) {
             selectedEntry = entries.get(clickedIndex);
-            selectedEntry.onSelected.run();
+            selectedEntry.onSelected();
             close();
         }
     }

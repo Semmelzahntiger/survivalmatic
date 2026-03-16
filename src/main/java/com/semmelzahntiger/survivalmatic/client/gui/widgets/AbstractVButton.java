@@ -7,12 +7,12 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
-public abstract class AbstractVButton extends AbstractVWidget {
+public abstract class AbstractVButton<W extends AbstractVButton<W>> extends AbstractVWidget {
     protected final ResourceLocation texture;
     protected final ResourceLocation textureDisabled;
     protected final ResourceLocation hoverTexture;
-    protected final VOnPress onPress;
-    public <T extends ButtonBuilder<T>> AbstractVButton(ButtonBuilder<T> builder) {
+    protected final VOnPress<W> onPress;
+    public <T extends ButtonBuilder<W,T>> AbstractVButton(ButtonBuilder<W,T> builder) {
         super(builder);
         this.onPress = builder.onPress;
         texture = builder.buttonTextureEnabled;
@@ -41,7 +41,7 @@ public abstract class AbstractVButton extends AbstractVWidget {
 
     @Override
     public void onClick(double pMouseX, double pMouseY) {
-        onPress.onPress(this);
+        onPress.onPress((W) this);
     }
     public abstract void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick);
     public abstract void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick);
@@ -55,20 +55,20 @@ public abstract class AbstractVButton extends AbstractVWidget {
 
     }
     @FunctionalInterface
-    public interface VOnPress {
-        void onPress(AbstractVButton button);
+    public interface VOnPress<B extends AbstractVButton<B>> {
+        void onPress(B button);
     }
 
-    public static class ButtonBuilder<T extends ButtonBuilder<T>> extends AbstractVWidget.WidgetBuilder<ButtonBuilder<T>> {
+    public abstract static class ButtonBuilder<W extends AbstractVButton<W>,T extends ButtonBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W, ButtonBuilder<W,T>> {
         protected ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonHoverTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
 
-        protected VOnPress onPress = button -> {};
+        protected VOnPress<W> onPress = button -> {};
         public ButtonBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
-        public T setOnPress(VOnPress onPress) {
+        public T setOnPress(VOnPress<W> onPress) {
             this.onPress = onPress;
             return self();
         }

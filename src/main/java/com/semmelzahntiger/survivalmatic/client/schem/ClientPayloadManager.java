@@ -63,25 +63,25 @@ public class ClientPayloadManager {
         UUID requestUUID = UUID.randomUUID();
 
         pendingRequests.put(requestUUID,new Tuple<>(instance,requestFuture));
-        Survivalmatic.LOGGER.info("Sending Request with UUID '" + requestUUID + "'");
-        ModNetwork.INSTANCE.sendToServer(new TransferHeaderPacket(requestUUID, instance.name, instance.dataSize, blockEntityPos));
+        Survivalmatic.LOGGER.info("Sending Request with UUID '{}'", requestUUID);
+        ModNetwork.INSTANCE.sendToServer(new TransferHeaderPacket(requestUUID, instance.name,instance.extension, instance.dataSize, blockEntityPos));
 
         requestFuture.orTimeout(20, TimeUnit.SECONDS).thenAccept(request -> {
             pendingRequests.remove(requestUUID);
             if(request) {
-                Survivalmatic.LOGGER.info("Request with UUID '" + requestUUID + "' accepted, creating Payload...");
+                Survivalmatic.LOGGER.info("Request with UUID '{}' accepted, creating Payload...", requestUUID);
                 addPayloadAsync(requestUUID, instance, payloadFuture);
             }
             else {
-                Survivalmatic.LOGGER.warn("Request with UUID '" + requestUUID + "' rejected, terminating...");
+                Survivalmatic.LOGGER.warn("Request with UUID '{}' rejected, terminating...", requestUUID);
                 payloadFuture.completeExceptionally(new CancellationException());
             }
         }).exceptionally(exception -> {
             if(exception instanceof CancellationException) {
-                Survivalmatic.LOGGER.warn("Request with UUID '" + requestUUID + "' cancelled, terminating...");
+                Survivalmatic.LOGGER.warn("Request with UUID '{}' cancelled, terminating...", requestUUID);
             }
             else if (exception instanceof TimeoutException) {
-                Survivalmatic.LOGGER.warn("Request with UUID '" + requestUUID + "' timed out, terminating...");
+                Survivalmatic.LOGGER.warn("Request with UUID '{}' timed out, terminating...", requestUUID);
             }
             pendingRequests.remove(requestUUID);
             payloadFuture.completeExceptionally(exception);
@@ -155,6 +155,8 @@ public class ClientPayloadManager {
                     int bytesToBeSent = Math.min(byteCount - lastSentByteIndex, MAX_BYTES_SENDABLE);
                     boolean isFinalPacket = bytesToBeSent < MAX_BYTES_SENDABLE;
                     ModNetwork.INSTANCE.sendToServer(new TransferPayloadPacket(requestUUID, bytesToBeSent, Arrays.copyOfRange(data, lastSentByteIndex, lastSentByteIndex + bytesToBeSent), isFinalPacket));
+                    lastSentByteIndex += bytesToBeSent;
+                    Survivalmatic.LOGGER.info("Sending Payload...({} / {}) (Size: {} Bytes | Final: {})",lastSentByteIndex+1,byteCount, bytesToBeSent, isFinalPacket);
                     yield isFinalPacket ? PAYLOAD_STATE.COMPLETED : PAYLOAD_STATE.SENDING;
                 }
                 case COMPLETED -> PAYLOAD_STATE.COMPLETED;

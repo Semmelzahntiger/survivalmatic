@@ -2,18 +2,30 @@ package com.semmelzahntiger.survivalmatic.client.gui;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
+import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.IScrollableList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableList;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.TextVButton;
+import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import java.io.File;
+import java.util.concurrent.CompletableFuture;
 
-public class SchemBuilderInterface extends Screen {
+public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
+    public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
+        super(pMenu, pPlayerInventory, pTitle);
+    }
+
     public enum InterfaceState {
         IDLE,
         SCHEMATIC_SELECTED,
@@ -23,12 +35,8 @@ public class SchemBuilderInterface extends Screen {
     }
     public InterfaceState state = InterfaceState.IDLE;
     public ScrollableDropDownList schematicList;
-    public Button loadButton;
-    public Button uploadButton;
-
-    public SchemBuilderInterface(Component pTitle) {
-        super(pTitle);
-    }
+    public TextVButton<?> loadButton;
+    public TextVButton<?> uploadButton;
 
     @Override
     protected void init() {
@@ -44,14 +52,14 @@ public class SchemBuilderInterface extends Screen {
             dropDownList.addTextEntry(Component.literal(availableSchematicName));
         }
         addRenderableWidget(dropDownList);
-        Button loadButton = Button.builder(
-                Component.literal("Load"),
-                onPress -> {
+        TextVButton<?> newLoad = TextVButton.TextButtonBuilder.of(0.5f, 0.04f, 0.1f, 0.1f, this)
+                .setOnPress(button -> {
                     if(dropDownList.getSelectedEntry() != null) {
                         IScrollableList.TextEntry selectedEntry = (IScrollableList.TextEntry) dropDownList.getSelectedEntry();
                         Component text = selectedEntry.text;
                         File file = ClientSchematicData.INSTANCE.getSchematicFile(text.getString());
                         Survivalmatic.LOGGER.info("Loading schematic {}", file.getName());
+
                         SchematicReader.getStreamableInstanceAsync(file).thenAccept(optional -> {
                             optional.ifPresent(streamable -> {
                                 ClientSchematicData.INSTANCE.setSchematicInstance(streamable);
@@ -62,33 +70,49 @@ public class SchemBuilderInterface extends Screen {
                     else {
                         Survivalmatic.LOGGER.warn("No schematic selected in Dropdown List, skip loading...");
                     }
-                }
-        ).bounds(this.width / 2, 20, (int) (this.width * 0.1f), (int) (this.height * 0.1f)).build();
-        Button uploadButton = Button.builder(Component.literal("Upload"), onPress -> {
-
-        })
-                .bounds((int) (this.width * 0.6f), 20, (int) (this.width * 0.1f), (int) (this.height *0.1f))
+                })
+                .setText(Component.literal("Load"))
                 .build();
-        addRenderableWidget(loadButton);
-        addRenderableWidget(uploadButton);
+        TextVButton<?> newUploadButton = TextVButton.TextButtonBuilder.of(0.6f, 0.04f, 0.1f, 0.1f, this)
+                .setOnPress(button -> {
+                    if(ClientSchematicData.INSTANCE.getSchematicInstance() != null) {
+                        Tuple<CompletableFuture<Boolean>, CompletableFuture<Boolean>> futures = ClientPayloadManager.INSTANCE.newRequest();
+                        futures.getA().thenAccept(val -> {
+                            if(val) {
+
+                            }
+                            else {
+
+                            }
+                        });
+                        futures.getB().thenAccept(val -> {
+                            if(val) {
+
+                            }
+                            else {
+
+                            }
+                        });
+                    }
+                })
+                .setText(Component.literal("Upload"))
+                .build();
+        addRenderableWidget(newLoad);
+        addRenderableWidget(newUploadButton);
+
         this.schematicList = dropDownList;
-        this.loadButton = loadButton;
-        this.uploadButton = uploadButton;
+        this.loadButton = newLoad;
+        this.uploadButton = newUploadButton;
     }
 
-    @Override
-    public void tick() {
-        super.tick();
-        switch (state) {
-            case IDLE -> {
-                loadButton.active = false;
-            }
-        }
-    }
 
     @Override
     public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        renderBackground(pGuiGraphics);
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+    }
+
+    @Override
+    protected void renderBg(GuiGraphics guiGraphics, float v, int i, int i1) {
+
     }
 }

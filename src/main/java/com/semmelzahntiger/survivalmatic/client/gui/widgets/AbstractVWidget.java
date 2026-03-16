@@ -20,7 +20,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
         this.widthRelative = widthRelative;
         this.heightRelative = heightRelative;
     }
-    public <T extends WidgetBuilder<T>> AbstractVWidget(WidgetBuilder<T> builder) {
+    public <W extends AbstractVWidget,T extends WidgetBuilder<W,T>> AbstractVWidget(WidgetBuilder<W,T> builder) {
        this(builder.xRelative, builder.yRelative, builder.widthRelative, builder.heightRelative, builder.parentScreen, builder.pMessage);
     }
     public int getXBound() {
@@ -76,7 +76,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
 
     }
-    public static class WidgetBuilder<T extends WidgetBuilder<T>> {
+    public abstract static class WidgetBuilder<W extends AbstractVWidget,T extends WidgetBuilder<W,T>> {
         final float xRelative;
         final float yRelative;
         final float widthRelative;
@@ -99,6 +99,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
         T self() {
             return (T) this;
         }
+        abstract W build();
 
     }
 }

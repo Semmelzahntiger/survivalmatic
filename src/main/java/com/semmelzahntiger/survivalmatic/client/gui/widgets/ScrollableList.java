@@ -28,7 +28,7 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
     protected int entryHeight;
     protected int listHeight;
 
-    protected final List<IScrollableList.ListEntry> entries = new ArrayList<>();
+    protected final List<IScrollableList.ListEntry<?>> entries = new ArrayList<>();
     protected int entryCount = 0;
     protected int currentYScroll = 0;
     protected int scrollIndexShift = 0;
@@ -134,7 +134,7 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
     }
 
     @Override
-    public List<ListEntry> getEntries() {
+    public List<ListEntry<?>> getEntries() {
         return entries;
     }
 

@@ -13,7 +13,7 @@ public class KeyBindInteractionHandler {
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             while(OPEN_SCHEMBUILDER.get().consumeClick()) {
-                Minecraft.getInstance().setScreen(new SchemBuilderInterface(Component.empty()));
+
             }
         }
     }

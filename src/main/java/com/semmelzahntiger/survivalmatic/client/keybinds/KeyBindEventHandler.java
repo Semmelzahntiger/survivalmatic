@@ -8,7 +8,6 @@ import static com.semmelzahntiger.survivalmatic.client.keybinds.KeyBinds.OPEN_SC
 public class KeyBindEventHandler {
     @SubscribeEvent
     public static void registerKeyBindings(RegisterKeyMappingsEvent event) {
-        System.out.println("I REGISTED HERE YOU WISSIKH");
         event.register(OPEN_SCHEMBUILDER.get());
     }
 }
