@@ -14,6 +14,17 @@ import net.minecraft.network.chat.Component;
 import java.io.File;
 
 public class SchemBuilderInterface extends Screen {
+    public enum InterfaceState {
+        IDLE,
+        SCHEMATIC_SELECTED,
+        LOADING_SCHEMATIC,
+        LOADED_SCHEMATIC,
+        UPLOADING_SCHEMATIC,
+    }
+    public InterfaceState state = InterfaceState.IDLE;
+    public ScrollableDropDownList schematicList;
+    public Button loadButton;
+    public Button uploadButton;
 
     public SchemBuilderInterface(Component pTitle) {
         super(pTitle);
@@ -53,20 +64,26 @@ public class SchemBuilderInterface extends Screen {
                     }
                 }
         ).bounds(this.width / 2, 20, (int) (this.width * 0.1f), (int) (this.height * 0.1f)).build();
-        Button uploadButton = Button.builder().build();
+        Button uploadButton = Button.builder(Component.literal("Upload"), onPress -> {
+
+        })
+                .bounds((int) (this.width * 0.6f), 20, (int) (this.width * 0.1f), (int) (this.height *0.1f))
+                .build();
         addRenderableWidget(loadButton);
-//        ScrollableList scrollableList = ScrollableList.Builder.of(0.5f, 0.1f, 0.4f, 0.1f, 5, this, Component.empty())
-//                .setBorderMargins(0.03f, 0.03f, 0.04f, 0.04f)
-//                .build();
-//        for (int i = 0; i < 10; i++) {
-//            scrollableList.addTextEntry(Component.literal("Test " + i));
-//        }
-//        addRenderableWidget(scrollableList);
+        addRenderableWidget(uploadButton);
+        this.schematicList = dropDownList;
+        this.loadButton = loadButton;
+        this.uploadButton = uploadButton;
     }
 
     @Override
     public void tick() {
         super.tick();
+        switch (state) {
+            case IDLE -> {
+                loadButton.active = false;
+            }
+        }
     }
 
     @Override
