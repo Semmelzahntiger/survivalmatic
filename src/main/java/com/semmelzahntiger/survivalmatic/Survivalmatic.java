@@ -39,6 +39,11 @@ public class Survivalmatic
         forgeEventBus.register(CapabilityRegistry.class);
         forgeEventBus.register(ServerSchemEventHandler.class);
 
+        Registry.BLOCKS.register(modEventBus);
+        Registry.ITEMS.register(modEventBus);
+        Registry.BLOCK_ENTITIES.register(modEventBus);
+        Registry.MENUS.register(modEventBus);
+
         modEventBus.addListener(this::onClientSetup);
         LOGGER.info("Ahleleleahlelas: " + (Ahleleleahlelas-21));
         try {

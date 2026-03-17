@@ -3,20 +3,17 @@ package com.semmelzahntiger.survivalmatic.client.gui;
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
 import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.IScrollableList;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.TextVButton;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.BaseTextVButton;
 import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
@@ -35,8 +32,8 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     }
     public InterfaceState state = InterfaceState.IDLE;
     public ScrollableDropDownList schematicList;
-    public TextVButton<?> loadButton;
-    public TextVButton<?> uploadButton;
+    public BaseTextVButton<?> loadButton;
+    public BaseTextVButton<?> uploadButton;
 
     @Override
     protected void init() {
@@ -52,7 +49,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
             dropDownList.addTextEntry(Component.literal(availableSchematicName));
         }
         addRenderableWidget(dropDownList);
-        TextVButton<?> newLoad = TextVButton.TextButtonBuilder.of(0.5f, 0.04f, 0.1f, 0.1f, this)
+        TextVButton newLoad = TextVButton.TextVButtonBuilder.of(0.5f, 0.04f, 0.1f, 0.1f, this)
                 .setOnPress(button -> {
                     if(dropDownList.getSelectedEntry() != null) {
                         IScrollableList.TextEntry selectedEntry = (IScrollableList.TextEntry) dropDownList.getSelectedEntry();
@@ -73,27 +70,29 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Load"))
                 .build();
-        TextVButton<?> newUploadButton = TextVButton.TextButtonBuilder.of(0.6f, 0.04f, 0.1f, 0.1f, this)
+        TextVButton newUploadButton = TextVButton.TextVButtonBuilder.of(0.6f, 0.04f, 0.1f, 0.1f, this)
                 .setOnPress(button -> {
                     if(ClientSchematicData.INSTANCE.getSchematicInstance() != null) {
-                        Tuple<CompletableFuture<Boolean>, CompletableFuture<Boolean>> futures = ClientPayloadManager.INSTANCE.newRequest();
-                        futures.getA().thenAccept(val -> {
-                            if(val) {
-
-                            }
-                            else {
-
-                            }
-                        });
-                        futures.getB().thenAccept(val -> {
-                            if(val) {
-
-                            }
-                            else {
-
-                            }
-                        });
+                        Survivalmatic.LOGGER.info("Upload context valid");
                     }
+//                        Tuple<CompletableFuture<Boolean>, CompletableFuture<Boolean>> futures = ClientPayloadManager.INSTANCE.newRequest();
+//                        futures.getA().thenAccept(val -> {
+//                            if(val) {
+//
+//                            }
+//                            else {
+//
+//                            }
+//                        });
+//                        futures.getB().thenAccept(val -> {
+//                            if(val) {
+//
+//                            }
+//                            else {
+//
+//                            }
+//                        });
+//                    }
                 })
                 .setText(Component.literal("Upload"))
                 .build();

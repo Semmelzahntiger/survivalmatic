@@ -1,15 +1,15 @@
 package com.semmelzahntiger.survivalmatic.client.gui.widgets;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.AbstractVWidget;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 

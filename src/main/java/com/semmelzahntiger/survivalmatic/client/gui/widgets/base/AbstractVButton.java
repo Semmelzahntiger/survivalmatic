@@ -1,4 +1,4 @@
-package com.semmelzahntiger.survivalmatic.client.gui.widgets;
+package com.semmelzahntiger.survivalmatic.client.gui.widgets.base;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -59,7 +59,7 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         void onPress(B button);
     }
 
-    public abstract static class ButtonBuilder<W extends AbstractVButton<W>,T extends ButtonBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W, ButtonBuilder<W,T>> {
+    public abstract static class ButtonBuilder<W extends AbstractVButton<W>,T extends ButtonBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W, T> {
         protected ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonHoverTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");

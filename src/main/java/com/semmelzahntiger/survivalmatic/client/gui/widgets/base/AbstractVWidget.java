@@ -1,6 +1,5 @@
-package com.semmelzahntiger.survivalmatic.client.gui.widgets;
+package com.semmelzahntiger.survivalmatic.client.gui.widgets.base;
 
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
@@ -99,7 +98,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
         T self() {
             return (T) this;
         }
-        abstract W build();
+        protected abstract W build();
 
     }
 }

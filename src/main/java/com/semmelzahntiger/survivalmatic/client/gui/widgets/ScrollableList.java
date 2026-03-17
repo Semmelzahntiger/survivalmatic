@@ -1,6 +1,8 @@
 package com.semmelzahntiger.survivalmatic.client.gui.widgets;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.AbstractVWidget;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;

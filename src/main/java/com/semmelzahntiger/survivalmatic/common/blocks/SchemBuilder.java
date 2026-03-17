@@ -28,10 +28,6 @@ public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBl
     @SuppressWarnings("deprecation")
     @Override
     public @NotNull InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
-        pPlayer.getItemInHand(pHand).getItem();
-        if(pLevel.isClientSide){
-            Minecraft.getInstance().setScreen(new SchemBuilderInterface(Component.empty()));
-        }
         return InteractionResult.SUCCESS;
     }
 
