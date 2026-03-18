@@ -60,7 +60,6 @@ public class Survivalmatic
         catch (IOException e) {
             Survivalmatic.LOGGER.error("Couldn't create or scan schematic directory", e);
         }
-        // ModNetwork.init();
     }
     public void onClientSetup(FMLClientSetupEvent event) {
         ModNetwork.init();

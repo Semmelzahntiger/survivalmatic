@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.blockentities;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
@@ -62,7 +63,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
     private int ticksSinceLastSync = 0;
 
-    IItemHandler itemHandler;
+    public IItemHandler itemHandler;
     LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
 
     public SchemBuilderBlockEntity(BlockPos pPos, BlockState pBlockState) {
@@ -149,6 +150,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void setSchematicInstance(SchematicReader.SchematicInstance serverSchematicInstance) {
         state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
+        Survivalmatic.LOGGER.info("Schematic Locked into BlockEntity");
     }
     public void setDisplayMessage(String displayMessage) {
         this.displayMessage = displayMessage;

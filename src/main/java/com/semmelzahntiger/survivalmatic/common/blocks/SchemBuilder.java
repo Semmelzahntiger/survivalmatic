@@ -6,6 +6,7 @@ import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -31,10 +32,12 @@ public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBl
     @Override
     public @NotNull InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         if(!pLevel.isClientSide()) {
+            ServerLevel level = (ServerLevel) pLevel;
             GlobalPos pos = GlobalPos.of(pLevel.dimension(), pPos);
             ServerPlayer player = (ServerPlayer) pPlayer;
+            SchemBuilderBlockEntity be = (SchemBuilderBlockEntity) level.getBlockEntity(pPos);
             NetworkHooks.openScreen(player, new SimpleMenuProvider(
-                    (containerID, playerInventory, serverplayer) -> new SchemBuilderMenu(containerID, playerInventory, pos), Component.empty()
+                    (containerID, playerInventory, serverplayer) -> new SchemBuilderMenu(containerID, playerInventory, be.itemHandler,pos), Component.empty()
             ), buf -> buf.writeGlobalPos(pos));
         }
         return InteractionResult.SUCCESS;

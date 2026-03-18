@@ -16,15 +16,6 @@ public abstract class BaseTextVButton<W extends BaseTextVButton<W>> extends Abst
     public void setText(Component text) {
         this.text = text;
     }
-    @Override
-    public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-
-    }
-
-    @Override
-    public void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-
-    }
 
     @Override
     public void renderAlways(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {

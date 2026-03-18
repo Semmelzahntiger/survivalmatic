@@ -81,19 +81,22 @@ public class SchematicReader {
      */
     public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
         if(fileExtension.equals("schem")) {
+            Survivalmatic.LOGGER.info("Reading .schem File");
             return readSchemFile(stream, registry);
         }
         else if(fileExtension.equals("nbt")) {
+            Survivalmatic.LOGGER.info("Reading .nbt File");
             return readNbtFile(stream, registry);
         }
         else {
-            FilenameUtils.getExtension(fileExtension);
+            Survivalmatic.LOGGER.error(".{} invalid. Only .schem and .nbt are currently supported", fileExtension);
             return Optional.empty();
         }
     }
     private static Optional<SchematicInstance> readSchemFile(ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
-            CompoundTag schematicData = NbtIo.readCompressed(stream);
+            CompoundTag schematicRead = NbtIo.readCompressed(stream);
+            CompoundTag schematicData = schematicRead.getCompound("Schematic");
             int version = schematicData.getInt("Version");
             BlockPos schematicOffset;
             short width;
@@ -132,6 +135,7 @@ public class SchematicReader {
                 schematicOffset = new BlockPos(offsets[0], offsets[1], offsets[2]);
             }
             else {
+                Survivalmatic.LOGGER.error("No compatible version found");
                 return Optional.empty();
             }
 
@@ -139,9 +143,15 @@ public class SchematicReader {
                 paletteMap.put(paletteTag.getInt(key), key);
             }
             for (Map.Entry<Integer, String> entry : paletteMap.entrySet()) {
-                BlockStateParser.BlockResult result = BlockStateParser.parseForBlock(registry.lookupOrThrow(Registries.BLOCK), entry.getValue(), false);
-                blockStateMap.put(entry.getKey(), result.blockState());
-                itemMap.put(entry.getKey(), result.blockState().getBlock().asItem());
+                BlockState result;
+                try {
+                    result = BlockStateParser.parseForBlock(registry.lookupOrThrow(Registries.BLOCK), entry.getValue(), false).blockState();
+                    itemMap.put(entry.getKey(), result.getBlock().asItem());
+                }
+                catch (CommandSyntaxException e) {
+                    result = Blocks.AIR.defaultBlockState();
+                }
+                blockStateMap.put(entry.getKey(), result);
             }
             int totalSize = width * height * length;
             int[] blockDataIntegers = new int[totalSize];
@@ -164,14 +174,11 @@ public class SchematicReader {
                     requiredItems.merge(item, 1, Integer::sum);
                 }
             }
+            Survivalmatic.LOGGER.info("Read schematic successfully");
             return Optional.of(new SchematicInstance(width, height, length, blockDataIntegers, schematicOffset, blockStateMap, requiredItems));
         }
         catch (IOException exception) {
             Survivalmatic.LOGGER.error("Failed to read schematic from ByteArrayInputStream", exception);
-            return Optional.empty();
-        }
-        catch(CommandSyntaxException exception) {
-            Survivalmatic.LOGGER.error("Failed to parse BlockState", exception);
             return Optional.empty();
         }
     }

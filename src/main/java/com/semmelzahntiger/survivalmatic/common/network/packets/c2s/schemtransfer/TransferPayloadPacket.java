@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferHeaderResponsePacket;
@@ -32,13 +33,13 @@ public class TransferPayloadPacket implements IPacketPayload {
         buf.writeUUID(requestUUID);
         buf.writeInt(batchSize);
         buf.writeBoolean(this.finalPacket);
-        buf.writeBytes(this.payload);
+        buf.writeByteArray(this.payload);
     }
     public static TransferPayloadPacket decode(FriendlyByteBuf buf) {
         UUID requestUUID = buf.readUUID();
         int batchSize = buf.readInt();
         boolean finalPacket = buf.readBoolean();
-        byte[] payload = buf.readByteArray();
+        byte[] payload = buf.readByteArray(2097152);
         return new TransferPayloadPacket(requestUUID, batchSize, payload, finalPacket);
     }
 
@@ -56,5 +57,6 @@ public class TransferPayloadPacket implements IPacketPayload {
                 ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(this.requestUUID, false));
             }
         });
+        ctx.get().setPacketHandled(true);
     }
 }

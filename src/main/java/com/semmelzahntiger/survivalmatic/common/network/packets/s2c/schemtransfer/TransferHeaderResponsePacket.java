@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.network.FriendlyByteBuf;
@@ -27,6 +28,10 @@ public class TransferHeaderResponsePacket implements IPacketPayload {
     }
     @Override
     public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ClientPayloadManager.INSTANCE.computeRequestResponse(this.requestUUID, this.success);
+        ctx.get().enqueueWork(() -> {
+            Survivalmatic.LOGGER.info("Received Response from Server");
+            ClientPayloadManager.INSTANCE.computeRequestResponse(this.requestUUID, this.success);
+        });
+        ctx.get().setPacketHandled(true);
     }
 }

@@ -11,6 +11,11 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
     protected final ResourceLocation texture;
     protected final ResourceLocation textureDisabled;
     protected final ResourceLocation hoverTexture;
+    protected float hoverLeftMargin;
+    protected float hoverTopMargin;
+    protected float hoverRightMargin;
+    protected float hoverBottomMargin;
+
     protected final VOnPress<W> onPress;
     public <T extends ButtonBuilder<W,T>> AbstractVButton(ButtonBuilder<W,T> builder) {
         super(builder);
@@ -18,6 +23,10 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         texture = builder.buttonTextureEnabled;
         textureDisabled = builder.buttonTextureDisabled;
         hoverTexture = builder.buttonHoverTexture;
+        hoverLeftMargin  = builder.hoverLeftMargin;
+        hoverTopMargin  = builder.hoverTopMargin;
+        hoverRightMargin  = builder.hoverRightMargin;
+        hoverBottomMargin  = builder.hoverBottomMargin;
     }
 
     @Override
@@ -43,8 +52,12 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
     public void onClick(double pMouseX, double pMouseY) {
         onPress.onPress((W) this);
     }
-    public abstract void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick);
-    public abstract void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick);
+    public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+
+    }
+    public void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+
+    }
     public void renderEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.blit(texture,this.getX(), this.getY(), this.getWidth(), this.getHeight(), 0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
     }
@@ -63,6 +76,10 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         protected ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonHoverTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
+        protected float hoverLeftMargin = 0;
+        protected float hoverRightMargin = 0;
+        protected float hoverTopMargin = 0;
+        protected float hoverBottomMargin = 0;
 
         protected VOnPress<W> onPress = button -> {};
         public ButtonBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
@@ -82,6 +99,13 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         }
         public T setHoverTexture(ResourceLocation texture) {
             this.buttonHoverTexture = texture;
+            return self();
+        }
+        public T setHoverMargins(float leftMargin, float topMargin, float rightMargin, float bottomMargin) {
+            this.hoverLeftMargin = leftMargin;
+            this.hoverRightMargin = rightMargin;
+            this.hoverTopMargin = topMargin;
+            this.hoverBottomMargin = bottomMargin;
             return self();
         }
         @Override

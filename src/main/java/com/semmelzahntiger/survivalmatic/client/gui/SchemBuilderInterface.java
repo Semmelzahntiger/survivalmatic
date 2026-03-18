@@ -7,13 +7,16 @@ import com.semmelzahntiger.survivalmatic.client.gui.widgets.TextVButton;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.BaseTextVButton;
+import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.io.File;
+import java.util.concurrent.CompletableFuture;
 
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
@@ -71,27 +74,29 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .build();
         TextVButton newUploadButton = TextVButton.TextVButtonBuilder.of(0.6f, 0.04f, 0.1f, 0.1f, this)
                 .setOnPress(button -> {
-                    if(ClientSchematicData.INSTANCE.getSchematicInstance() != null) {
-                        Survivalmatic.LOGGER.info("Upload context valid");
+                    if(ClientSchematicData.INSTANCE.getSchematicInstance() == null) {
+                        Survivalmatic.LOGGER.info("No Schematic Loaded, skip uploading...");
+                        return;
                     }
-//                        Tuple<CompletableFuture<Boolean>, CompletableFuture<Boolean>> futures = ClientPayloadManager.INSTANCE.newRequest();
-//                        futures.getA().thenAccept(val -> {
-//                            if(val) {
-//
-//                            }
-//                            else {
-//
-//                            }
-//                        });
-//                        futures.getB().thenAccept(val -> {
-//                            if(val) {
-//
-//                            }
-//                            else {
-//
-//                            }
-//                        });
-//                    }
+                    Tuple<CompletableFuture<Boolean>, CompletableFuture<Boolean>> futures = ClientPayloadManager.INSTANCE.newRequest(
+                            ClientSchematicData.INSTANCE.getSchematicInstance(), getMenu().pos
+                    );
+                    futures.getA().thenAccept(val -> {
+                        if(val) {
+
+                        }
+                        else {
+
+                        }
+                    });
+                    futures.getB().thenAccept(val -> {
+                        if(val) {
+
+                        }
+                        else {
+
+                        }
+                    });
                 })
                 .setText(Component.literal("Upload"))
                 .build();
@@ -104,9 +109,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
 
     }
 
-
-
-
     @Override
     public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         this.renderBackground(pGuiGraphics);
@@ -117,6 +119,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float v, int i, int i1) {
-
+        guiGraphics.blit(AbstractContainerScreen.INVENTORY_LOCATION, leftPos, topPos, 0,0, this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
     }
 }

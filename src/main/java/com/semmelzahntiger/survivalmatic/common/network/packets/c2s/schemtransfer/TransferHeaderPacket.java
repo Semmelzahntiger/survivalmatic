@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferHeaderResponsePacket;
@@ -60,5 +61,6 @@ public class TransferHeaderPacket implements IPacketPayload {
                 ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferHeaderResponsePacket(this.requestUUID, false));
             }
         });
+        ctx.get().setPacketHandled(true);
     }
 }

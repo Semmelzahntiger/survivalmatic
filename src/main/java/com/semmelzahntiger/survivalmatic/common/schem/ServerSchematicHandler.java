@@ -4,6 +4,7 @@ import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferHeaderResponsePacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferResultPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -45,41 +46,51 @@ public class ServerSchematicHandler {
     private final HashMap<UUID, SchematicBuilder> queuedSchematics = new HashMap<>();
     // Todo: Add Config for Size restriction
     private void addRequest(UUID requestUUID,String schematicName, String fileExtension, String uploaderName, int byteCount, GlobalPos pos) {
-        SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, uploaderName, fileExtension, byteCount, pos);
+        SchematicBuilder schematicBuilder = new SchematicBuilder(schematicName, fileExtension, uploaderName, byteCount, pos);
         queuedSchematics.put(requestUUID, schematicBuilder);
     }
     public void incomingInitialRequest(UUID requestUUID,String schematicName,String fileExtension, int byteCount, GlobalPos blockEntityPos, MinecraftServer server, UUID playerUUID) {
         ServerPlayer requester = server.getPlayerList().getPlayer(playerUUID);
         ResourceKey<Level> level = blockEntityPos.dimension();
         BlockEntity blockEntity = server.getLevel(level).getBlockEntity(blockEntityPos.pos());
+
+        Survivalmatic.LOGGER.info("Received new request with UUID {} from Player {}.",requestUUID, playerUUID);
+        Survivalmatic.LOGGER.info("Schematic Name: {}; Type : .{}; Size: {}; At {}", schematicName, fileExtension, byteCount, blockEntityPos);
+
         if (blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.newIncomingRequest()) {
             sendHeaderResponse(requestUUID, requester, true);
             addRequest(requestUUID,schematicName,fileExtension, requester.getName().getString(), byteCount, blockEntityPos);
+            Survivalmatic.LOGGER.info("Request {} accepted, responding...", requestUUID);
         }
         else {
             sendHeaderResponse(requestUUID, requester, false);
+            Survivalmatic.LOGGER.info("Request {} denied, responding...", requestUUID);
         }
     }
     public void incomingByteBatch(UUID requestUUID, byte[] bytes, boolean finalBytePacket, MinecraftServer server, UUID playerUUID) {
         SchematicBuilder schem = queuedSchematics.get(requestUUID);
         ServerPlayer player = server.getPlayerList().getPlayer(playerUUID);
         if(schem == null) {
+            Survivalmatic.LOGGER.warn("Schem not found");
             sendSchematicResponse(requestUUID, player, false);
             return;
         }
+        Survivalmatic.LOGGER.info("Received Payload for Request {} ({} Bytes, Final : {}", requestUUID, bytes.length, finalBytePacket);
         schem.addBytes(bytes);
         if(finalBytePacket) {
             if(schem.validatePayload()) {
+                Survivalmatic.LOGGER.info("Validation Successful, Building Schematic...");
                 schem.buildAndPassToBlockEntity(server);
                 sendSchematicResponse(requestUUID, player, true);
             }
             else {
+                Survivalmatic.LOGGER.error("Validation failed. Expected {} Bytes, Received {} Bytes", schem.byteCount, schem.bytes.size());
                 terminateRequest(requestUUID, player);
             }
         }
     }
     private void sendHeaderResponse(UUID requestUUID, ServerPlayer player, boolean accepted) {
-        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(requestUUID,accepted));
+        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferHeaderResponsePacket(requestUUID,accepted));
     }
     public void sendSchematicResponse(UUID requestUUID, ServerPlayer player, boolean success) {
         ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(requestUUID,success));
@@ -133,6 +144,14 @@ public class ServerSchematicHandler {
                 ResourceKey<Level> level = this.blockEntityPos.dimension();
                 BlockPos pos = blockEntityPos.pos();
                 BlockEntity blockEntity = server.getLevel(level).getBlockEntity(pos);
+                Survivalmatic.LOGGER.info("I HAVE ZE OPTIONAL RESULT");
+                if(blockEntity instanceof SchemBuilderBlockEntity) {
+                    Survivalmatic.LOGGER.info("IS CORRECT");
+                }
+                else {
+                    System.out.println("Hä");
+                    Survivalmatic.LOGGER.info(blockEntity.getType().toString());
+                }
                 if(blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.getState() == SchemBuilderBlockEntity.STATE.RECEIVING_DATA) {
                     schemBuilder.setSchematicInstance(instance);
                 }

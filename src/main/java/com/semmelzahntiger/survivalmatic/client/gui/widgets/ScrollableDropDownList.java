@@ -128,7 +128,9 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         guiGraphics.blit(BACKGROUND, this.getX(), this.getY(), this.getWidth(), closedHeight,0,0,this.getWidth(),closedHeight, this.getWidth(), closedHeight);
 
         if(selectedEntry != null) {
+            guiGraphics.enableScissor(this.getX(), this.getY(), this.getXBound(), this.getY() + closedHeight);
             selectedEntry.renderInternal(guiGraphics, this.getX(), this.getY(), this.getWidth(), closedHeight, i, i1, v);
+            guiGraphics.disableScissor();
         }
         guiGraphics.blit(ACTIVE_BORDER,this.getX() - this.selectedBorderLeftMargin, this.getY() - this.selectedBorderTopMargin,
                 this.getWidth() + this.selectedBorderRightMargin, this.closedHeight + this.selectedBorderBottomMargin,

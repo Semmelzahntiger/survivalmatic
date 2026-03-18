@@ -69,11 +69,11 @@ public class ClientPayloadManager {
         requestFuture.orTimeout(20, TimeUnit.SECONDS).thenAccept(request -> {
             pendingRequests.remove(requestUUID);
             if(request) {
-                Survivalmatic.LOGGER.info("Request with UUID '{}' accepted, creating Payload...", requestUUID);
+                Survivalmatic.LOGGER.info("Request with UUID '{}' accepted by Server, creating Payload...", requestUUID);
                 addPayloadAsync(requestUUID, instance, payloadFuture);
             }
             else {
-                Survivalmatic.LOGGER.warn("Request with UUID '{}' rejected, terminating...", requestUUID);
+                Survivalmatic.LOGGER.warn("Request with UUID '{}' rejected by Server, terminating...", requestUUID);
                 payloadFuture.completeExceptionally(new CancellationException());
             }
         }).exceptionally(exception -> {
@@ -88,7 +88,7 @@ public class ClientPayloadManager {
             return null;
         });
         payloadFuture.thenAccept(value -> {
-            Survivalmatic.LOGGER.info("Transfer with UUID '" + requestUUID + "' successful");
+            Survivalmatic.LOGGER.info("Transfer with UUID '" + requestUUID + "' completed");
             removePayload(requestUUID);
 
         }).exceptionally(exception -> {
@@ -154,9 +154,10 @@ public class ClientPayloadManager {
                 case SENDING -> {
                     int bytesToBeSent = Math.min(byteCount - lastSentByteIndex, MAX_BYTES_SENDABLE);
                     boolean isFinalPacket = bytesToBeSent < MAX_BYTES_SENDABLE;
-                    ModNetwork.INSTANCE.sendToServer(new TransferPayloadPacket(requestUUID, bytesToBeSent, Arrays.copyOfRange(data, lastSentByteIndex, lastSentByteIndex + bytesToBeSent), isFinalPacket));
+                    byte[] payload = Arrays.copyOfRange(data, lastSentByteIndex, lastSentByteIndex + bytesToBeSent);
+                    ModNetwork.INSTANCE.sendToServer(new TransferPayloadPacket(requestUUID, bytesToBeSent, payload, isFinalPacket));
                     lastSentByteIndex += bytesToBeSent;
-                    Survivalmatic.LOGGER.info("Sending Payload...({} / {}) (Size: {} Bytes | Final: {})",lastSentByteIndex+1,byteCount, bytesToBeSent, isFinalPacket);
+                    Survivalmatic.LOGGER.info("Sending Payload...({} / {}) (Size: {} Bytes | Final: {})",lastSentByteIndex,byteCount, bytesToBeSent, isFinalPacket);
                     yield isFinalPacket ? PAYLOAD_STATE.COMPLETED : PAYLOAD_STATE.SENDING;
                 }
                 case COMPLETED -> PAYLOAD_STATE.COMPLETED;
