@@ -76,12 +76,12 @@ public abstract class AbstractVWidget extends AbstractWidget {
 
     }
     public abstract static class WidgetBuilder<W extends AbstractVWidget,T extends WidgetBuilder<W,T>> {
-        final float xRelative;
-        final float yRelative;
-        final float widthRelative;
-        final float heightRelative;
-        final Screen parentScreen;
-        Component pMessage;
+        protected final float xRelative;
+        protected final float yRelative;
+        protected final float widthRelative;
+        protected final float heightRelative;
+        protected final Screen parentScreen;
+        protected Component pMessage;
 
         public WidgetBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
             this.xRelative = xRelative;

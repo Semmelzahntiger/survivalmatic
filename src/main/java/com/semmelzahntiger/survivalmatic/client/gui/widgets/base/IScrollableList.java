@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic.client.gui.widgets.base;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -160,10 +161,13 @@ public interface IScrollableList {
             super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
             PoseStack pose = guiGraphics.pose();
             int lineHeight = Minecraft.getInstance().font.lineHeight;
-            float scale = (float) height / 2 / lineHeight ;
+            float scale = (float) height / 2 / lineHeight;
             pose.pushPose();
             pose.scale(scale, scale, 1.0f);
-            guiGraphics.drawCenteredString(Minecraft.getInstance().font, text, (int) ((x + (float) width / 2) / scale), (int) ((y + (float) height / 2) / scale), 0xFFFFFF);
+            guiGraphics.drawCenteredString(Minecraft.getInstance().font, text,
+                    (int) ((x + (float) width / 2) / scale),
+                    (int) ((y + (float) height / 2) / scale),
+                    0xFFFFFF);
             pose.popPose();
         }
 

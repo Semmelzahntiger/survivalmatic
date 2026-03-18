@@ -28,7 +28,7 @@ public class SchemBuilderStatePacket implements IPacketPayload {
 
     @Override
     public void handle(Supplier<NetworkEvent.Context> ctx) {
-
+        ctx.get().setPacketHandled(true);
     }
     public static SchemBuilderStatePacket decode(FriendlyByteBuf buf) {
         return new SchemBuilderStatePacket(buf.readInt(), buf.readUtf());

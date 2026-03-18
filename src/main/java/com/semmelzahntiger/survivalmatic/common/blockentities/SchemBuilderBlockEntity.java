@@ -4,10 +4,11 @@ import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
-import com.semmelzahntiger.survivalmatic.common.registries.Registry;
+import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -18,6 +19,7 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,11 +60,15 @@ public class SchemBuilderBlockEntity extends BlockEntity {
 
     private String displayMessage = "Select Schematic...";
 
+    private int ticksSinceLastSync = 0;
+
+    IItemHandler itemHandler;
     LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
 
     public SchemBuilderBlockEntity(BlockPos pPos, BlockState pBlockState) {
-        super(Registry.SCHEM_BUILDER_BE.get(), pPos, pBlockState);
-        inventoryHandlerLazyOptional = LazyOptional.of(() -> new SchemBuilderItemCap(this));
+        super(ModRegistry.SCHEM_BUILDER_BE.get(), pPos, pBlockState);
+        itemHandler = new SchemBuilderItemCap(this);
+        inventoryHandlerLazyOptional = LazyOptional.of(() -> itemHandler);
     }
 
     @Override
@@ -155,6 +161,9 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         schemBuilderBlockEntity.internalTick(level, pos, state);
     }
     private void internalTick(Level level, BlockPos pos, BlockState blockState) {
+        if(level.isClientSide()) {
+            return;
+        }
         this.state = switch (state) {
             case IDLE, READY, RECEIVING_DATA -> this.state;
             case SCHEMATIC_LOCKED -> {
@@ -188,13 +197,21 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             }
             case DUMPING -> dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
         };
-        syncWithClients();
+
+        if(ticksSinceLastSync >= 10) {
+          syncWithClients();
+          ticksSinceLastSync = 0;
+        }
+        else {
+            ticksSinceLastSync++;
+        }
     }
     private void syncWithClients() {
         // Only sync Items in relevant Sections
         switch (state) {
             case SCHEMATIC_LOCKED, DUMPING, READY -> {
-                SchemBuilderItemBufferPacket itemBufferPacket = new SchemBuilderItemBufferPacket(materialBuffer, dumpBuffer);
+                Registry<Item> registry = this.getLevel().getServer().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get();
+                SchemBuilderItemBufferPacket itemBufferPacket = new SchemBuilderItemBufferPacket(materialBuffer, dumpBuffer, registry);
                 ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), itemBufferPacket);
             }
         }
@@ -205,10 +222,8 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         if(state != STATE.READY) {
             return 1;
         }
-
         buildInstance = new BuildInstance(serverSchematicInstance);
         state = STATE.BUILDING;
-
         return 0;
     }
     public int cancelBuilding() {

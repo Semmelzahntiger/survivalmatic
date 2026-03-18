@@ -32,7 +32,7 @@ public class ModNetwork {
         INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class, SchemBuilderStatePacket::encode, SchemBuilderStatePacket::decode, SchemBuilderStatePacket::handle);
         INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class, SchemBuilderItemBufferPacket::encode, SchemBuilderItemBufferPacket::decode, SchemBuilderItemBufferPacket::handle);
     }
-    static {
+    public static void init() {
         clientMessages();
         serverMessages();
     }

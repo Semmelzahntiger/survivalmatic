@@ -7,20 +7,18 @@ import com.semmelzahntiger.survivalmatic.client.gui.widgets.TextVButton;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.BaseTextVButton;
-import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.io.File;
-import java.util.concurrent.CompletableFuture;
 
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
+
     }
 
     public enum InterfaceState {
@@ -32,13 +30,14 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     }
     public InterfaceState state = InterfaceState.IDLE;
     public ScrollableDropDownList schematicList;
-    public BaseTextVButton<?> loadButton;
-    public BaseTextVButton<?> uploadButton;
+    public TextVButton loadButton;
+    public TextVButton uploadButton;
 
     @Override
     protected void init() {
+        super.init();
         ScrollableDropDownList dropDownList = ScrollableDropDownList.Builder.of(
-                0.05f,0.1f, 0.1f, 0.04f, 4, Component.empty(), this)
+                0.4f,0.1f, 0.1f, 0.04f, 4, Component.empty(), this)
                 .setEntryWidthRatio(0.95f)
                 .setEntryHeightRatio(0.9f)
                 .setListOffset(0.01f)
@@ -49,7 +48,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
             dropDownList.addTextEntry(Component.literal(availableSchematicName));
         }
         addRenderableWidget(dropDownList);
-        TextVButton newLoad = TextVButton.TextVButtonBuilder.of(0.5f, 0.04f, 0.1f, 0.1f, this)
+        TextVButton newLoad = TextVButton.TextVButtonBuilder.of(0.3f, 0.04f, 0.1f, 0.1f, this)
                 .setOnPress(button -> {
                     if(dropDownList.getSelectedEntry() != null) {
                         IScrollableList.TextEntry selectedEntry = (IScrollableList.TextEntry) dropDownList.getSelectedEntry();
@@ -102,12 +101,18 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         this.schematicList = dropDownList;
         this.loadButton = newLoad;
         this.uploadButton = newUploadButton;
+
     }
+
+
 
 
     @Override
     public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        this.renderBackground(pGuiGraphics);
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+        this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
+
     }
 
     @Override

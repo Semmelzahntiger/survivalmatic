@@ -70,7 +70,7 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
     IScrollableList.ListEntry<?> selectedEntry = null;
 
     protected ScrollableDropDownList(Builder builder) {
-        super(builder.x,  builder.y, builder.width, builder.height, builder.screen, builder.message);
+        super(builder.x, builder.y, builder.width, builder.height, builder.screen, builder.message);
         // Textures
         this.DEFAULT_ENTRY_TEXTURE = builder.entryTexture;
         this.BACKGROUND = builder.background;

@@ -1,6 +1,7 @@
 package com.semmelzahntiger.survivalmatic.client.gui.widgets.base;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -27,7 +28,8 @@ public abstract class BaseTextVButton<W extends BaseTextVButton<W>> extends Abst
 
     @Override
     public void renderAlways(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        guiGraphics.drawCenteredString(Minecraft.getInstance().font, text.getString(), width / 2, height / 2, 0xFFFFFFFF);
+        Font font = Minecraft.getInstance().font;
+        guiGraphics.drawCenteredString(Minecraft.getInstance().font, text.getString(), this.getX() + width / 2, this.getY() + height / 2 - font.lineHeight / 2, 0xFFFFFFFF);
     }
 
     public abstract static class BaseTextButtonBuilder<W extends BaseTextVButton<W>, T extends BaseTextButtonBuilder<W,T>> extends AbstractVButton.ButtonBuilder<W, T> {
