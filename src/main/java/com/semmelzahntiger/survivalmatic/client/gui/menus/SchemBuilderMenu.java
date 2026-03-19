@@ -49,4 +49,9 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
     public boolean stillValid(Player player) {
         return true;
     }
+
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+    }
 }
