@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -37,7 +38,7 @@ public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBl
             ServerPlayer player = (ServerPlayer) pPlayer;
             SchemBuilderBlockEntity be = (SchemBuilderBlockEntity) level.getBlockEntity(pPos);
             NetworkHooks.openScreen(player, new SimpleMenuProvider(
-                    (containerID, playerInventory, serverplayer) -> new SchemBuilderMenu(containerID, playerInventory, be.itemHandler,pos), Component.empty()
+                    (containerID, playerInventory, serverplayer) -> new SchemBuilderMenu(containerID, playerInventory, ContainerLevelAccess.create(level, pos.pos()), be.itemHandler,pos), Component.empty()
             ), buf -> buf.writeGlobalPos(pos));
         }
         return InteractionResult.SUCCESS;

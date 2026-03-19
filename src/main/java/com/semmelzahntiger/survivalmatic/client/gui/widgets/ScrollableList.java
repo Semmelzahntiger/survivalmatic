@@ -65,7 +65,7 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
         this.offsetForScrollSlider = entryCount > visibleEntries ? listHeight / (entryCount - visibleEntries) : 0;
         guiGraphics.blit(background, this.getX(), this.getY(), this.getWidth(), this.getHeight(),0,0,this.getWidth(),this.getHeight(), this.getWidth(), this.getHeight());
         guiGraphics.enableScissor(this.getX(), this.getY(), this.getXBound(), this.getYBound());
-        for (IScrollableList.ListEntry entry : entries) {
+        for (IScrollableList.ListEntry<?> entry : entries) {
             entry.render(guiGraphics, i, i1, v);
         }
         guiGraphics.disableScissor();

@@ -138,7 +138,7 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
 
         if(isOpened) {
             guiGraphics.enableScissor(this.getX(), listStart, this.getXBound(), this.listStart+ this.listHeight);
-            for (IScrollableList.ListEntry entry : entries) {
+            for (IScrollableList.ListEntry<?> entry : entries) {
                 entry.render(guiGraphics, i, i1, v);
             }
             guiGraphics.disableScissor();

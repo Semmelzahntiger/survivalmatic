@@ -185,7 +185,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                             break;
                         }
                     }
-                    // yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
+                    yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
                 }
                 yield STATE.IDLE;
             }
@@ -237,20 +237,30 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             }
         }
     }
-    public int startBuilding() {
+    public void startBuilding() {
         if(state != STATE.READY) {
-            return 1;
+            return;
         }
         buildInstance = new BuildInstance(serverSchematicInstance);
         state = STATE.BUILDING;
-        return 0;
     }
-    public int cancelBuilding() {
+    public void pauseBuilding() {
         if(state != STATE.BUILDING) {
-            return 1;
+            return;
+        }
+        buildInstance.pause();
+    }
+    public void resumeBuilding() {
+        if(state != STATE.BUILDING) {
+            return;
+        }
+        buildInstance.resume();
+    }
+    public void cancelBuilding() {
+        if(state != STATE.BUILDING) {
+            return;
         }
         buildInstance.setCanceled();
-        return 0;
     }
     private void dump() {
         dumpBuffer.putAll(materialBuffer);
