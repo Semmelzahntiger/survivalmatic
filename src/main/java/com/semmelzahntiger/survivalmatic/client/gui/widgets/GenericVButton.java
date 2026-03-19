@@ -6,7 +6,7 @@ import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.NotNull;
 
 public class GenericVButton extends AbstractVButton<GenericVButton> {
-    public <T extends ButtonBuilder<GenericVButton, T>> GenericVButton(ButtonBuilder<GenericVButton, T> builder) {
+    public <T extends AbstractVButton.Builder<GenericVButton, T>> GenericVButton(AbstractVButton.Builder<GenericVButton, T> builder) {
         super(builder);
     }
 
@@ -19,17 +19,17 @@ public class GenericVButton extends AbstractVButton<GenericVButton> {
     public void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
 
     }
-    public static class GenericVButtonBuilder extends AbstractVButton.ButtonBuilder<GenericVButton, GenericVButtonBuilder> {
+    public static class Builder extends AbstractVButton.Builder<GenericVButton, Builder> {
 
-        public GenericVButtonBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
-        public static GenericVButtonBuilder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
-            return new GenericVButtonBuilder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
+        public static Builder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+            return new Builder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
 
         @Override
-        protected GenericVButton build() {
+        public GenericVButton build() {
             return new GenericVButton(this);
         }
     }
