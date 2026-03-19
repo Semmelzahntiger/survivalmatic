@@ -1,6 +1,7 @@
 package com.semmelzahntiger.survivalmatic.common.blockentities;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
+import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
 import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
@@ -9,7 +10,9 @@ import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Registry;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -25,7 +28,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class SchemBuilderBlockEntity extends BlockEntity {
     public static final int BUILD_BATCH_SIZE = 40;
@@ -150,7 +155,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void setSchematicInstance(SchematicReader.SchematicInstance serverSchematicInstance) {
         state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
-        Survivalmatic.LOGGER.info("Schematic Locked into BlockEntity");
+        Survivalmatic.LOGGER.info("SchemBuilder @{}/{} received Schematic {}", this.getBlockPos(), this.getLevel().dimension(), serverSchematicInstance.name());
     }
     public void setDisplayMessage(String displayMessage) {
         this.displayMessage = displayMessage;
@@ -162,6 +167,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         SchemBuilderBlockEntity schemBuilderBlockEntity = (SchemBuilderBlockEntity) Entity;
         schemBuilderBlockEntity.internalTick(level, pos, state);
     }
+    // Todo: Refactor Tick Method
     private void internalTick(Level level, BlockPos pos, BlockState blockState) {
         if(level.isClientSide()) {
             return;
@@ -179,7 +185,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                             break;
                         }
                     }
-                    yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
+                    // yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
                 }
                 yield STATE.IDLE;
             }
@@ -201,6 +207,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         };
 
         if(ticksSinceLastSync >= 10) {
+            Survivalmatic.LOGGER.info(state.toString() + level.isClientSide);
           syncWithClients();
           ticksSinceLastSync = 0;
         }
@@ -209,16 +216,26 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         }
     }
     private void syncWithClients() {
-        // Only sync Items in relevant Sections
         switch (state) {
             case SCHEMATIC_LOCKED, DUMPING, READY -> {
-                Registry<Item> registry = this.getLevel().getServer().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get();
-                SchemBuilderItemBufferPacket itemBufferPacket = new SchemBuilderItemBufferPacket(materialBuffer, dumpBuffer, registry);
-                ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), itemBufferPacket);
+                try {
+                    Registry<Item> registry = this.getLevel().getServer().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get();
+                    SchemBuilderItemBufferPacket itemBufferPacket = new SchemBuilderItemBufferPacket(materialBuffer, dumpBuffer, registry);
+                    SchemBuilderStatePacket statePacket = new SchemBuilderStatePacket(state.getId(), getDisplayMessage());
+                    List<ServerPlayer> players = this.getLevel().getServer().getPlayerList().getPlayers().stream().filter(player -> {
+                        GlobalPos globalPos = GlobalPos.of(this.getLevel().dimension(), this.getBlockPos());
+                        return player.containerMenu instanceof SchemBuilderMenu menu && Objects.equals(menu.pos, globalPos);
+                    }).toList();
+                    players.forEach(player -> {
+                        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), itemBufferPacket);
+                        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), statePacket);
+                    });
+                }
+                catch(Exception e) {
+                    Survivalmatic.LOGGER.info("Could not sync data with Clients" + e.getMessage());
+                }
             }
         }
-        SchemBuilderStatePacket packet = new SchemBuilderStatePacket(state.getId(), getDisplayMessage());
-        ModNetwork.INSTANCE.send(PacketDistributor.TRACKING_CHUNK.with(() -> getLevel().getChunkAt(getBlockPos())), packet);
     }
     public int startBuilding() {
         if(state != STATE.READY) {
