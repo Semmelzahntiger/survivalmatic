@@ -17,7 +17,7 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
     protected float hoverBottomMargin;
 
     protected final VOnPress<W> onPress;
-    public <T extends ButtonBuilder<W,T>> AbstractVButton(ButtonBuilder<W,T> builder) {
+    public <T extends Builder<W,T>> AbstractVButton(Builder<W,T> builder) {
         super(builder);
         this.onPress = builder.onPress;
         texture = builder.buttonTextureEnabled;
@@ -72,7 +72,7 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         void onPress(B button);
     }
 
-    public abstract static class ButtonBuilder<W extends AbstractVButton<W>,T extends ButtonBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W, T> {
+    public abstract static class Builder<W extends AbstractVButton<W>,T extends Builder<W,T>> extends AbstractVWidget.WidgetBuilder<W, T> {
         protected ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonHoverTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
@@ -82,7 +82,7 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         protected float hoverBottomMargin = 0;
 
         protected VOnPress<W> onPress = button -> {};
-        public ButtonBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
         public T setOnPress(VOnPress<W> onPress) {

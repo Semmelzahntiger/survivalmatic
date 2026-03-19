@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 public abstract class BaseTextVButton<W extends BaseTextVButton<W>> extends AbstractVButton<W> {
     protected Component text;
-    public <T extends BaseTextButtonBuilder<W, T>> BaseTextVButton(BaseTextButtonBuilder<W,T> builder) {
+    public <T extends Builder<W, T>> BaseTextVButton(Builder<W,T> builder) {
         super(builder);
         this.text = builder.text;
     }
@@ -23,9 +23,9 @@ public abstract class BaseTextVButton<W extends BaseTextVButton<W>> extends Abst
         guiGraphics.drawCenteredString(Minecraft.getInstance().font, text.getString(), this.getX() + width / 2, this.getY() + height / 2 - font.lineHeight / 2, 0xFFFFFFFF);
     }
 
-    public abstract static class BaseTextButtonBuilder<W extends BaseTextVButton<W>, T extends BaseTextButtonBuilder<W,T>> extends AbstractVButton.ButtonBuilder<W, T> {
+    public abstract static class Builder<W extends BaseTextVButton<W>, T extends Builder<W,T>> extends AbstractVButton.Builder<W, T> {
         protected Component text = Component.empty();
-        public BaseTextButtonBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
         public T setText(Component text) {

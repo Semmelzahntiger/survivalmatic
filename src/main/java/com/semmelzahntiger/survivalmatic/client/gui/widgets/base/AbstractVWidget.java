@@ -98,7 +98,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
         T self() {
             return (T) this;
         }
-        protected abstract W build();
+        public abstract W build();
 
     }
 }

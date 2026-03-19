@@ -7,7 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.NotNull;
 
 public class TextVButton extends BaseTextVButton<TextVButton> {
-    public <T extends BaseTextButtonBuilder<TextVButton, T>> TextVButton(BaseTextButtonBuilder<TextVButton, T> builder) {
+    public <T extends BaseTextVButton.Builder<TextVButton, T>> TextVButton(BaseTextVButton.Builder<TextVButton, T> builder) {
         super(builder);
     }
 
@@ -24,13 +24,13 @@ public class TextVButton extends BaseTextVButton<TextVButton> {
 
     }
 
-    public static class TextVButtonBuilder extends BaseTextButtonBuilder<TextVButton, TextVButtonBuilder> {
+    public static class Builder extends BaseTextVButton.Builder<TextVButton, Builder> {
 
-        public TextVButtonBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
-        public static TextVButtonBuilder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
-            return new TextVButtonBuilder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
+        public static Builder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+            return new Builder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
         @Override
         public TextVButton build() {
