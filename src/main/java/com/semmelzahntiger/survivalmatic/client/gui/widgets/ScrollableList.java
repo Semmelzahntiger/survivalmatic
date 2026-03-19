@@ -157,8 +157,8 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
         protected final Screen screen;
         protected final Component message;
         protected final int visibleEntries;
-        protected ResourceLocation defaultEntryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/list_entry.png");
-        protected ResourceLocation backgroundTexture =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/amk.png");
+        protected ResourceLocation defaultEntryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
+        protected ResourceLocation backgroundTexture =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
         protected ResourceLocation listBorderTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_border.png");
         protected float borderLeftMargin = 0;
         protected float borderTopMargin = 0;

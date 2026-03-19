@@ -332,9 +332,9 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         public final int visibleEntries;
         public float listOffset;
         public final Component message;
-        public ResourceLocation entryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/list_entry.png");
-        public ResourceLocation background =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/amk.png");
-        public ResourceLocation hovered = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hovered.png");
+        public ResourceLocation entryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
+        public ResourceLocation background =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
+        public ResourceLocation hovered = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hover_border.png");
         public float hoveredLeftMargin = 0;
         public float hoveredRightMargin = 0;
         public float hoveredTopMargin = 0;
