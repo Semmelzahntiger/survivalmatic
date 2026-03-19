@@ -1,5 +1,7 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata;
 
+import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
+import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
@@ -28,6 +30,9 @@ public class SchemBuilderStatePacket implements IPacketPayload {
 
     @Override
     public void handle(Supplier<NetworkEvent.Context> ctx) {
+        ctx.get().enqueueWork(() -> {
+            SchemBuilderInterfaceData.getINSTANCE().setState(state);
+        });
         ctx.get().setPacketHandled(true);
     }
     public static SchemBuilderStatePacket decode(FriendlyByteBuf buf) {
