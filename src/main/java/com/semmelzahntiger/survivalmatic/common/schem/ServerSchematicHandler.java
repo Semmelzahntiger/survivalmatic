@@ -139,23 +139,25 @@ public class ServerSchematicHandler {
         }
         public void buildAndPassToBlockEntity(MinecraftServer server) {
             HolderLookup.Provider registry = server.registryAccess();
-            CompletableFuture<Optional<SchematicReader.SchematicInstance>> schematicFutureOptional = SchematicReader.getSchematicFromBufferAsync(new ByteArrayInputStream(ArrayUtils.toPrimitive(bytes.toArray(new Byte[0]))), fileExtension, registry);
-            schematicFutureOptional.thenAccept(optional -> optional.ifPresent(instance -> {
+            CompletableFuture<Optional<SchematicReader.SchematicInstance>> schematicFutureOptional = SchematicReader.getSchematicFromBufferAsync(name,new ByteArrayInputStream(ArrayUtils.toPrimitive(bytes.toArray(new Byte[0]))), fileExtension, registry);
+            schematicFutureOptional.thenAccept(optional -> optional.ifPresentOrElse(instance -> {
                 ResourceKey<Level> level = this.blockEntityPos.dimension();
                 BlockPos pos = blockEntityPos.pos();
-                BlockEntity blockEntity = server.getLevel(level).getBlockEntity(pos);
-                Survivalmatic.LOGGER.info("I HAVE ZE OPTIONAL RESULT");
-                if(blockEntity instanceof SchemBuilderBlockEntity) {
-                    Survivalmatic.LOGGER.info("IS CORRECT");
-                }
-                else {
-                    System.out.println("Hä");
-                    Survivalmatic.LOGGER.info(blockEntity.getType().toString());
-                }
-                if(blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.getState() == SchemBuilderBlockEntity.STATE.RECEIVING_DATA) {
-                    schemBuilder.setSchematicInstance(instance);
-                }
-            }));
+                server.execute(() -> {
+                    BlockEntity blockEntity = server.getLevel(level).getBlockEntity(pos);
+                    if(blockEntity instanceof SchemBuilderBlockEntity schemBuilder && schemBuilder.getState() == SchemBuilderBlockEntity.STATE.RECEIVING_DATA) {
+                        schemBuilder.setSchematicInstance(instance);
+                    }
+                    else {
+                        Survivalmatic.LOGGER.info("Could not confirm BlockEntity at {} is of Type SchemBuilderBlockEntity or BlockEntity rejects Data", this.blockEntityPos);
+                    }
+                });
+            }, () -> {
+                Survivalmatic.LOGGER.info("No SchematicInstance received, cannot set Instance for BlockEntity at {}", this.blockEntityPos);
+            })).exceptionally(exception -> {
+                Survivalmatic.LOGGER.info("Couldn't compute SchematicData");
+                return null;
+            });
         }
         public void tick() {
             ticksSinceLastUpdate++;
