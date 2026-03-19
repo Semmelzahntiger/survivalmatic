@@ -79,21 +79,21 @@ public class SchematicReader {
      * @param registry RegistryAccess from the Server in order to retrieve {@link BlockState BlockStates} and the required {@link Item Items} for the Schematic
      * @return Optional of {@link SchematicInstance SchematicInstance}
      */
-    public static Optional<SchematicInstance> readSchematicFromBuffer(ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
+    public static Optional<SchematicInstance> readSchematicFromBuffer(String instanceName, ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
         if(fileExtension.equals("schem")) {
             Survivalmatic.LOGGER.info("Reading .schem File");
-            return readSchemFile(stream, registry);
+            return readSchemFile(instanceName,stream, registry);
         }
         else if(fileExtension.equals("nbt")) {
             Survivalmatic.LOGGER.info("Reading .nbt File");
-            return readNbtFile(stream, registry);
+            return readNbtFile(instanceName,stream, registry);
         }
         else {
             Survivalmatic.LOGGER.error(".{} invalid. Only .schem and .nbt are currently supported", fileExtension);
             return Optional.empty();
         }
     }
-    private static Optional<SchematicInstance> readSchemFile(ByteArrayInputStream stream, HolderLookup.Provider registry) {
+    private static Optional<SchematicInstance> readSchemFile(String name,ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
             CompoundTag schematicRead = NbtIo.readCompressed(stream);
             CompoundTag schematicData = schematicRead.getCompound("Schematic");
@@ -175,14 +175,14 @@ public class SchematicReader {
                 }
             }
             Survivalmatic.LOGGER.info("Read schematic successfully");
-            return Optional.of(new SchematicInstance(width, height, length, blockDataIntegers, schematicOffset, blockStateMap, requiredItems));
+            return Optional.of(new SchematicInstance(name,width, height, length, blockDataIntegers, schematicOffset, blockStateMap, requiredItems));
         }
         catch (IOException exception) {
             Survivalmatic.LOGGER.error("Failed to read schematic from ByteArrayInputStream", exception);
             return Optional.empty();
         }
     }
-    private static Optional<SchematicInstance> readNbtFile(ByteArrayInputStream stream, HolderLookup.Provider registry) {
+    private static Optional<SchematicInstance> readNbtFile(String name, ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
             HashMap<Integer, BlockState> blockStateMap = new HashMap<>();
             HashMap<Integer, Item> itemMap = new HashMap<>();
@@ -211,7 +211,7 @@ public class SchematicReader {
                 flattenedBlockPos[index] = stateID;
                 requiredItems.put(itemMap.get(stateID), requiredItems.getOrDefault(itemMap.get(stateID), 0) + 1);
             }
-            return Optional.of(new SchematicInstance(width, height, length, flattenedBlockPos, new BlockPos(0,0,0), blockStateMap, requiredItems));
+            return Optional.of(new SchematicInstance(name, width, height, length, flattenedBlockPos, new BlockPos(0,0,0), blockStateMap, requiredItems));
         }
         catch (Exception e) {
             Survivalmatic.LOGGER.error("Failed to read schematic", e);
@@ -223,11 +223,11 @@ public class SchematicReader {
     }
 
     /**
-     * Asynchronous Version of {@link SchematicReader#readSchematicFromBuffer(ByteArrayInputStream, String, HolderLookup.Provider)}
+     * Asynchronous Version of {@link SchematicReader#readSchematicFromBuffer(String name,ByteArrayInputStream, String, HolderLookup.Provider)}
      * @return {@link CompletableFuture} containing the Optional of {@link SchematicInstance SchematicInstance}
      */
-    public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
-        return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(stream, fileExtension, registry));
+    public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(String name,ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
+        return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(name, stream, fileExtension, registry));
     }
 
     /**
@@ -240,7 +240,7 @@ public class SchematicReader {
     public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromFileAsync(File file, HolderLookup.Provider registry) {
         return CompletableFuture.supplyAsync(() -> {
             Optional<ByteArrayInputStream> stream = readFileAsInputStream(file);
-            return stream.isPresent() ? readSchematicFromBuffer(stream.get(),FilenameUtils.getExtension(file.getName()), registry) : Optional.empty();
+            return stream.isPresent() ? readSchematicFromBuffer(file.getName(),stream.get(),FilenameUtils.getExtension(file.getName()), registry) : Optional.empty();
         });
     }
 
@@ -264,6 +264,7 @@ public class SchematicReader {
     /**
      * Common/Server Side representation of a schematic, contains the actual information from the Schematic.
      * Either instantiated from {@link SchematicReader#getSchematicFromFileAsync(File, HolderLookup.Provider)} or built from {@link ServerSchematicHandler ServerSchematicHandler}
+     * @param name Internal Name for the Schematic
      * @param width Width of Schematic
      * @param height Height of Schematic
      * @param length Length of Schematic
@@ -272,7 +273,7 @@ public class SchematicReader {
      * @param palette All BlockStates in the Schematic with their respective blockData ID
      * @param requiredItems All required Items for the Schematic
      */
-    public record SchematicInstance(int width, int height, int length, int[] blockData, BlockPos offset,
+    public record SchematicInstance(String name, int width, int height, int length, int[] blockData, BlockPos offset,
                                     Map<Integer, BlockState> palette, Map<Item, Integer> requiredItems) {
         public BlockState getBlockState(int x, int y, int z) {
                 if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) {
