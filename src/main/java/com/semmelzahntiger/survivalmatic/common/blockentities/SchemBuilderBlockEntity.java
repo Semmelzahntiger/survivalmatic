@@ -8,10 +8,8 @@ import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedat
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.GlobalPos;
-import net.minecraft.core.Registry;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.core.*;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -33,7 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class SchemBuilderBlockEntity extends BlockEntity {
-    public static final int BUILD_BATCH_SIZE = 40;
+    public static final int BUILD_BATCH_SIZE = 120;
 
     public enum STATE {
         IDLE(0),
@@ -62,7 +60,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     private BuildInstance buildInstance = null;
     private boolean placesAir = false;
     private boolean preserveExcavation = false;
-    private Vec3 offset = Vec3.ZERO;
+    private Vec3i offset = Vec3i.ZERO;
 
     private String displayMessage = "Select Schematic...";
 
@@ -130,7 +128,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void confirmDumpBufferChanged() {
         dumpBufferChanged = false;
     }
-    public void setOffset(Vec3 offset) {
+    public void setOffset(Vec3i offset) {
         this.offset = offset;
     }
     public int cancel() {
@@ -177,14 +175,14 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
                     boolean enoughResource = true;
-                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
-                        Item item = entry.getKey();
-                        int minAmount = entry.getValue();
-                        if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
-                            enoughResource = false;
-                            break;
-                        }
-                    }
+//                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
+//                        Item item = entry.getKey();
+//                        int minAmount = entry.getValue();
+//                        if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
+//                            enoughResource = false;
+//                            break;
+//                        }
+//                    }
                     yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
                 }
                 yield STATE.IDLE;
@@ -207,8 +205,8 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         };
 
         if(ticksSinceLastSync >= 10) {
-            Survivalmatic.LOGGER.info(state.toString() + level.isClientSide);
           syncWithClients();
+          Survivalmatic.LOGGER.info(state.toString());
           ticksSinceLastSync = 0;
         }
         else {
@@ -268,9 +266,9 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         materialBuffer.clear();
     }
     private class BuildInstance {
-        private int trackedWidth;
-        private int trackedHeight;
-        private int trackedLength;
+        private int trackedWidth = 0;
+        private int trackedHeight = 0;
+        private int trackedLength = 0;
 
         private final int LAST_INDEX;
         private int currentIndex = 1;
@@ -299,6 +297,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             return isPaused;
         }
         public void tickBuild(Level level) {
+            Survivalmatic.LOGGER.info("Dimensions {}, {}, {}", instance.width(), instance.height(), instance.length());
             if(isCanceled) {
                 return;
             }
@@ -312,7 +311,10 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                         // If batch is exhausted, continue in the next tick, or if build is finished terminate as well (in case the tick is triggered even if it shouldn't)
                         if(remainingBatchCount == 0 || isFinished()) break batch;
                         trackedLength = z;
-                        BlockPos pos = new BlockPos(x, y, z);
+                        BlockPos pos = SchemBuilderBlockEntity.this.getBlockPos()
+                                .offset(SchemBuilderBlockEntity.this.offset)
+                                .offset(x, y, z)
+                                .offset(1,0,1);
                         BlockState toBePlaced = instance.getBlockState(x, y, z);
                         Item item = toBePlaced.getBlock().asItem();
                         // A build can only start if all materials are present, so its assumed the only missing item in here is air which will be ignored
@@ -324,12 +326,16 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                             Item excavatedItem = excavatedState.getBlock().asItem();
                             dumpBuffer.put(excavatedItem, dumpBuffer.getOrDefault(excavatedItem, 0) + 1);
                         }
-                        level.setBlock(pos, toBePlaced,0);
+                        Survivalmatic.LOGGER.info("Placing Block at {}", pos);
+                        level.setBlockAndUpdate(pos, toBePlaced);
                         remainingBatchCount--;
                         currentIndex++;
                     }
+                    trackedLength = 0;
                 }
+                trackedWidth = 0;
             }
+            BlockRenderDispatcher disp;
         }
         public boolean isFinished() {
             return currentIndex >= LAST_INDEX;
