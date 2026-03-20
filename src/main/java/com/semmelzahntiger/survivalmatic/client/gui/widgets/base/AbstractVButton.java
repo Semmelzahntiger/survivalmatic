@@ -10,7 +10,8 @@ import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 public abstract class AbstractVButton<W extends AbstractVButton<W>> extends AbstractVWidget {
     protected final ResourceLocation texture;
     protected final ResourceLocation textureDisabled;
-    protected final ResourceLocation hoverTexture;
+    protected final ResourceLocation hoverTextureEnabled;
+    protected final ResourceLocation hoverTextureDisabled;
     protected float hoverLeftMargin;
     protected float hoverTopMargin;
     protected float hoverRightMargin;
@@ -22,7 +23,8 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         this.onPress = builder.onPress;
         texture = builder.buttonTextureEnabled;
         textureDisabled = builder.buttonTextureDisabled;
-        hoverTexture = builder.buttonHoverTexture;
+        hoverTextureEnabled = builder.buttonHoverTexture;
+        hoverTextureDisabled = builder.buttonHoverTextureDisabled;
         hoverLeftMargin  = builder.hoverLeftMargin;
         hoverTopMargin  = builder.hoverTopMargin;
         hoverRightMargin  = builder.hoverRightMargin;
@@ -42,21 +44,23 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
             renderHoveredEnabled(guiGraphics, mouseX, mouseY, partialTick);
         }
         else if(isActive() && !isHovered()) {
+
+        }
+        else {
             renderHoveredDisabled(guiGraphics, mouseX, mouseY, partialTick);
         }
-
-
     }
 
     @Override
     public void onClick(double pMouseX, double pMouseY) {
         onPress.onPress((W) this);
     }
-    public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
 
+    public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        guiGraphics.blit(hoverTextureEnabled,this.getX(), this.getY(), this.getWidth(), this.getHeight(), 0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
     }
     public void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-
+        guiGraphics.blit(hoverTextureDisabled,this.getX(), this.getY(), this.getWidth(), this.getHeight(), 0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
     }
     public void renderEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.blit(texture,this.getX(), this.getY(), this.getWidth(), this.getHeight(), 0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
@@ -76,6 +80,7 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         protected ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
         protected ResourceLocation buttonHoverTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
+        protected ResourceLocation buttonHoverTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
         protected float hoverLeftMargin = 0;
         protected float hoverRightMargin = 0;
         protected float hoverTopMargin = 0;
@@ -97,8 +102,12 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
             this.buttonTextureDisabled = textureDisabled;
             return self();
         }
-        public T setHoverTexture(ResourceLocation texture) {
+        public T setHoverTextureEnabled(ResourceLocation texture) {
             this.buttonHoverTexture = texture;
+            return self();
+        }
+        public T setHoverTextureDisabled(ResourceLocation textureDisabled) {
+            this.buttonHoverTextureDisabled = textureDisabled;
             return self();
         }
         public T setHoverMargins(float leftMargin, float topMargin, float rightMargin, float bottomMargin) {
