@@ -13,7 +13,7 @@ public class TextVButton extends BaseTextVButton<TextVButton> {
 
     @Override
     public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        guiGraphics.blit(this.hoverTexture, this.getX() - relativeToAbsoluteX(this.hoverLeftMargin), this.getY() - relativeToAbsoluteY(this.hoverTopMargin),
+        guiGraphics.blit(this.hoverTextureEnabled, this.getX() - relativeToAbsoluteX(this.hoverLeftMargin), this.getY() - relativeToAbsoluteY(this.hoverTopMargin),
                 this.getWidth() + relativeToAbsoluteX(this.hoverLeftMargin + this.hoverRightMargin),
                 this.getHeight() + relativeToAbsoluteY(hoverTopMargin + hoverBottomMargin),
                 0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());

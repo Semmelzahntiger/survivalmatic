@@ -11,8 +11,6 @@ import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.BeaconScreen;
-import net.minecraft.client.gui.screens.inventory.EnchantmentScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
@@ -116,22 +114,27 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         GenericVButton buildButton = GenericVButton.Builder.of(0.42f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 0))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build.png"))
+                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .build();
         GenericVButton pauseButton = GenericVButton.Builder.of(0.47f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 1))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/pause.png"))
+                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .build();
         GenericVButton resumeButton = GenericVButton.Builder.of(0.52f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 2))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/resume.png"))
+                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .build();
         GenericVButton cancelButton = GenericVButton.Builder.of(0.57f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 3))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/cancel.png"))
+                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .build();
         GenericVButton trashButton = GenericVButton.Builder.of(0.62f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 4))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/trash.png"))
+                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .build();
         addRenderableWidget(buildButton);
         addRenderableWidget(cancelButton);
