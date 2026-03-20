@@ -96,7 +96,8 @@ public class SchematicReader {
     private static Optional<SchematicInstance> readSchemFile(String name,ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
             CompoundTag schematicRead = NbtIo.readCompressed(stream);
-            CompoundTag schematicData = schematicRead.getCompound("Schematic");
+            CompoundTag schematicData = schematicRead.contains("Schematic") ? schematicRead.getCompound("Schematic") : schematicRead;
+
             int version = schematicData.getInt("Version");
             BlockPos schematicOffset;
             short width;
@@ -218,7 +219,7 @@ public class SchematicReader {
         }
         return Optional.empty();
     }
-    private static int to1D(int x, int y, int z, int width, int length) {
+    public static int to1D(int x, int y, int z, int width, int length) {
         return (y * width * length) + (z * width) + x;
     }
 
