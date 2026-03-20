@@ -10,15 +10,7 @@ public class GenericVButton extends AbstractVButton<GenericVButton> {
         super(builder);
     }
 
-    @Override
-    public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
 
-    }
-
-    @Override
-    public void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-
-    }
     public static class Builder extends AbstractVButton.Builder<GenericVButton, Builder> {
 
         public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
