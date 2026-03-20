@@ -27,6 +27,7 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         super(ModRegistry.SCHEM_BUILDER_MENU.get(), id);
         this.pos = pos;
         this.access = containerAccess;
+        this.addDataSlot(DataSlot.)
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
                 this.addSlot(new Slot(

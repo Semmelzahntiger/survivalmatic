@@ -23,15 +23,14 @@ public class TransferHeaderResponsePacket implements IPacketPayload {
         buf.writeUUID(requestUUID);
         buf.writeBoolean(success);
     }
+
+    @Override
+    public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
+        Survivalmatic.LOGGER.info("Received Response from Server");
+        ClientPayloadManager.INSTANCE.computeRequestResponse(this.requestUUID, this.success);
+    }
+
     public static TransferHeaderResponsePacket decode(FriendlyByteBuf buf) {
         return new TransferHeaderResponsePacket(buf.readUUID(), buf.readBoolean());
-    }
-    @Override
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            Survivalmatic.LOGGER.info("Received Response from Server");
-            ClientPayloadManager.INSTANCE.computeRequestResponse(this.requestUUID, this.success);
-        });
-        ctx.get().setPacketHandled(true);
     }
 }

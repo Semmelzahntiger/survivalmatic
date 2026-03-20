@@ -39,6 +39,21 @@ public class TransferHeaderPacket implements IPacketPayload {
         buf.writeInt(byteCount);
         buf.writeGlobalPos(blockEntityPosition);
     }
+
+    @Override
+    public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
+        ServerPlayer player = ctx.get().getSender();
+        MinecraftServer server = player.getServer();
+        if (server != null) {
+            ServerSchematicHandler.getInstance().ifPresentOrElse(handler -> {
+                handler.incomingInitialRequest(this.requestUUID, this.schematicName,this.fileExtension, this.byteCount, this.blockEntityPosition, server, player.getUUID());
+            }, () -> ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferHeaderResponsePacket(this.requestUUID, false)));
+        }
+        else {
+            ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferHeaderResponsePacket(this.requestUUID, false));
+        }
+    }
+
     public static TransferHeaderPacket decode(FriendlyByteBuf buf) {
         UUID requestUUID = buf.readUUID();
         String schematicName = buf.readUtf();
@@ -46,21 +61,5 @@ public class TransferHeaderPacket implements IPacketPayload {
         int byteCount = buf.readInt();
         GlobalPos blockEntityPosition = buf.readGlobalPos();
         return new TransferHeaderPacket(requestUUID, schematicName,fileExtension, byteCount, blockEntityPosition);
-    }
-    @Override
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
-            MinecraftServer server = player.getServer();
-            if (server != null) {
-                ServerSchematicHandler.getInstance().ifPresentOrElse(handler -> {
-                    handler.incomingInitialRequest(this.requestUUID, this.schematicName,this.fileExtension, this.byteCount, this.blockEntityPosition, server, player.getUUID());
-                }, () -> ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferHeaderResponsePacket(this.requestUUID, false)));
-            }
-            else {
-                ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferHeaderResponsePacket(this.requestUUID, false));
-            }
-        });
-        ctx.get().setPacketHandled(true);
     }
 }

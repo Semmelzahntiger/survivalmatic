@@ -35,28 +35,26 @@ public class TransferPayloadPacket implements IPacketPayload {
         buf.writeBoolean(this.finalPacket);
         buf.writeByteArray(this.payload);
     }
+
+    @Override
+    public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
+        ServerPlayer player = ctx.get().getSender();
+        MinecraftServer server = player.getServer();
+        if (server != null) {
+            ServerSchematicHandler.getInstance().ifPresentOrElse(handler -> {
+                handler.incomingByteBatch(this.requestUUID, this.payload,this.finalPacket, server, player.getUUID());
+            }, () -> ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(this.requestUUID, false)));
+        }
+        else {
+            ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(this.requestUUID, false));
+        }
+    }
+
     public static TransferPayloadPacket decode(FriendlyByteBuf buf) {
         UUID requestUUID = buf.readUUID();
         int batchSize = buf.readInt();
         boolean finalPacket = buf.readBoolean();
         byte[] payload = buf.readByteArray(2097152);
         return new TransferPayloadPacket(requestUUID, batchSize, payload, finalPacket);
-    }
-
-    @Override
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
-            MinecraftServer server = player.getServer();
-            if (server != null) {
-                ServerSchematicHandler.getInstance().ifPresentOrElse(handler -> {
-                    handler.incomingByteBatch(this.requestUUID, this.payload,this.finalPacket, server, player.getUUID());
-                }, () -> ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(this.requestUUID, false)));
-            }
-            else {
-                ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new TransferResultPacket(this.requestUUID, false));
-            }
-        });
-        ctx.get().setPacketHandled(true);
     }
 }

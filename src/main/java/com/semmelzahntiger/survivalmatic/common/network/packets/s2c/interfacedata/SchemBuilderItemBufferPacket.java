@@ -46,8 +46,8 @@ public class SchemBuilderItemBufferPacket implements IPacketPayload {
     }
 
     @Override
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().setPacketHandled(true);
+    public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
+
     }
     public static SchemBuilderItemBufferPacket decode(FriendlyByteBuf buf) {
         ClientPacketListener connection = Minecraft.getInstance().getConnection();

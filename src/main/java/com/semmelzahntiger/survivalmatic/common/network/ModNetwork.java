@@ -4,6 +4,9 @@ import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfe
 import com.semmelzahntiger.survivalmatic.common.network.packets.c2s.schemtransfer.TransferPayloadPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.projectiondata.HologramUpdatePacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.projectiondata.InvalidateHologramPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.projectiondata.NewHologramPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferHeaderResponsePacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.schemtransfer.TransferResultPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -31,6 +34,10 @@ public class ModNetwork {
 
         INSTANCE.registerMessage(ID++, SchemBuilderStatePacket.class, SchemBuilderStatePacket::encode, SchemBuilderStatePacket::decode, SchemBuilderStatePacket::handle);
         INSTANCE.registerMessage(ID++, SchemBuilderItemBufferPacket.class, SchemBuilderItemBufferPacket::encode, SchemBuilderItemBufferPacket::decode, SchemBuilderItemBufferPacket::handle);
+
+        INSTANCE.registerMessage(ID++, NewHologramPacket.class, NewHologramPacket::encode, NewHologramPacket::decode, NewHologramPacket::handle);
+        INSTANCE.registerMessage(ID++, HologramUpdatePacket.class, HologramUpdatePacket::encode, HologramUpdatePacket::decode, HologramUpdatePacket::handle);
+        INSTANCE.registerMessage(ID++, InvalidateHologramPacket.class, InvalidateHologramPacket::encode, InvalidateHologramPacket::decode, InvalidateHologramPacket::handle);
     }
     public static void init() {
         clientMessages();

@@ -22,14 +22,13 @@ public class TransferResultPacket implements IPacketPayload {
         buf.writeUUID(requestUUID);
         buf.writeBoolean(accepted);
     }
+
+    @Override
+    public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
+        ClientPayloadManager.INSTANCE.computePayloadResponse(requestUUID, accepted);
+    }
+
     public static TransferResultPacket decode(FriendlyByteBuf in) {
         return new TransferResultPacket(in.readUUID(), in.readBoolean());
-    }
-    @Override
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ClientPayloadManager.INSTANCE.computePayloadResponse(requestUUID, accepted);
-        });
-        ctx.get().setPacketHandled(true);
     }
 }

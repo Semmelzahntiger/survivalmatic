@@ -29,11 +29,8 @@ public class SchemBuilderStatePacket implements IPacketPayload {
     }
 
     @Override
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            SchemBuilderInterfaceData.getINSTANCE().setState(state);
-        });
-        ctx.get().setPacketHandled(true);
+    public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
+        SchemBuilderInterfaceData.getINSTANCE().setState(state);
     }
     public static SchemBuilderStatePacket decode(FriendlyByteBuf buf) {
         return new SchemBuilderStatePacket(buf.readInt(), buf.readUtf());

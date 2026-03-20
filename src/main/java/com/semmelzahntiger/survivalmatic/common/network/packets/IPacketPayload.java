@@ -4,11 +4,13 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
-
 public interface IPacketPayload {
     void encode(FriendlyByteBuf buf);
-    void handle(Supplier<NetworkEvent.Context> ctx);
-    static void handle(IPacketPayload packet, Supplier<NetworkEvent.Context> ctx) {
-        packet.handle(ctx);
+    void handleOnMainThread(Supplier<NetworkEvent.Context> ctx);
+    default void handle(Supplier<NetworkEvent.Context> ctx) {
+        ctx.get().enqueueWork(() -> {
+            handleOnMainThread(ctx);
+        });
+        ctx.get().setPacketHandled(true);
     }
 }
