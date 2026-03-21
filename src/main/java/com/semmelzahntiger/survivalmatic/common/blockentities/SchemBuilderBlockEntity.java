@@ -8,14 +8,13 @@ import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedat
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.core.*;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
@@ -30,8 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class SchemBuilderBlockEntity extends BlockEntity {
+public class SchemBuilderBlockEntity extends BlockEntity implements ContainerData {
     public static final int BUILD_BATCH_SIZE = 120;
+
+
 
     public enum STATE {
         IDLE(0),
@@ -41,11 +42,20 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         BUILDING(4),
         DUMPING(5);
         private final int id;
+        private static final Map<Integer, STATE> idToState = new HashMap<>();
+        static {
+            for (STATE state : values()) {
+                idToState.put(state.id, state);
+            }
+        }
         STATE(int id) {
             this.id = id;
         }
         public int getId() {
             return id;
+        }
+        public static STATE getByID(int id) {
+            return idToState.get(id);
         }
     }
     private STATE state = STATE.IDLE;
@@ -84,6 +94,47 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     }
 
     @Override
+    public int get(int i) {
+        return switch (i) {
+            // state sync
+            case 0 -> state.getId();
+            // build Instance Sync
+            case 1 -> {
+                if(buildInstance != null) {
+                    yield buildInstance.currentIndex;
+                }
+                yield 0;
+            }
+            case 2 -> {
+                if(buildInstance != null) {
+                    yield buildInstance.LAST_INDEX;
+                }
+                yield 0;
+            }
+            case 3 -> {
+                if(buildInstance != null) {
+                    yield buildInstance.isPaused ? 1 : 0;
+                }
+                yield 0;
+            }
+            // Active Sync
+            case 4 -> placesAir ? 1 : 0;
+            case 5 -> preserveExcavation ? 1 : 0;
+            default -> 0;
+        };
+    }
+
+    @Override
+    public void set(int i, int i1) {
+
+    }
+
+    @Override
+    public int getCount() {
+        return 6;
+    }
+
+    @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         inventoryHandlerLazyOptional.invalidate();
@@ -110,7 +161,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void setPlacesAir(boolean placesAir) {
         this.placesAir = placesAir;
     }
-    public boolean isPlacesAir() {
+    public boolean placesAir() {
         return placesAir;
     }
     public void setPreserveExcavation(boolean preserveExcavation) {
@@ -131,19 +182,7 @@ public class SchemBuilderBlockEntity extends BlockEntity {
     public void setOffset(Vec3i offset) {
         this.offset = offset;
     }
-    public int cancel() {
-        if(state == STATE.BUILDING && buildInstance != null) {
-            buildInstance.setCanceled();
-            return 0;
-        }
-        else if(state == STATE.SCHEMATIC_LOCKED || state == STATE.READY) {
-            dump();
-            return 0;
-        }
-        else {
-            return 1;
-        }
-    }
+
     public void clearDumpBuffer() {
         dumpBuffer.clear();
     }
@@ -254,17 +293,25 @@ public class SchemBuilderBlockEntity extends BlockEntity {
         }
         buildInstance.resume();
     }
-    public void cancelBuilding() {
-        if(state != STATE.BUILDING) {
-            return;
+    public int cancel() {
+        if(state == STATE.BUILDING && buildInstance != null) {
+            buildInstance.setCanceled();
+            return 0;
         }
-        buildInstance.setCanceled();
+        else if(state == STATE.SCHEMATIC_LOCKED || state == STATE.READY) {
+            dump();
+            return 0;
+        }
+        else {
+            return 1;
+        }
     }
     private void dump() {
         dumpBuffer.putAll(materialBuffer);
         dumpBufferChanged();
         materialBuffer.clear();
     }
+
     private class BuildInstance {
         private int trackedWidth = 0;
         private int trackedHeight = 0;
@@ -297,7 +344,6 @@ public class SchemBuilderBlockEntity extends BlockEntity {
             return isPaused;
         }
         public void tickBuild(Level level) {
-            Survivalmatic.LOGGER.info("Dimensions {}, {}, {}", instance.width(), instance.height(), instance.length());
             if(isCanceled) {
                 return;
             }
@@ -335,7 +381,6 @@ public class SchemBuilderBlockEntity extends BlockEntity {
                 }
                 trackedWidth = 0;
             }
-            BlockRenderDispatcher disp;
         }
         public boolean isFinished() {
             return currentIndex >= LAST_INDEX;

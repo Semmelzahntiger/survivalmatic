@@ -38,7 +38,7 @@ public class SchemBuilder extends HorizontalDirectionalBlock implements EntityBl
             ServerPlayer player = (ServerPlayer) pPlayer;
             SchemBuilderBlockEntity be = (SchemBuilderBlockEntity) level.getBlockEntity(pPos);
             NetworkHooks.openScreen(player, new SimpleMenuProvider(
-                    (containerID, playerInventory, serverplayer) -> new SchemBuilderMenu(containerID, playerInventory, ContainerLevelAccess.create(level, pos.pos()), be.itemHandler,pos), Component.empty()
+                    (containerID, playerInventory, serverplayer) -> new SchemBuilderMenu(containerID, playerInventory, ContainerLevelAccess.create(level, pos.pos()), be.itemHandler,pos, be), Component.empty()
             ), buf -> buf.writeGlobalPos(pos));
         }
         return InteractionResult.SUCCESS;
