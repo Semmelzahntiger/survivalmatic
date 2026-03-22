@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.client.gui.menus;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import net.minecraft.core.BlockPos;
@@ -107,10 +108,15 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
             // Toggle Excavation Preservation
             case 6 -> {
                 access.execute((level, blockpos) -> {
-                    getBlockEntity(level, blockpos).ifPresent(be -> be.setPreserveExcavation(!be.preservesExcavation()));
+                    Survivalmatic.LOGGER.info("Debug toggle");
+                    getBlockEntity(level, blockpos).ifPresent(be -> {
+                        be.setPreserveExcavation(!be.preservesExcavation());
+                        Survivalmatic.LOGGER.info(Boolean.toString(be.preservesExcavation()));
+                    });
                 });
                 return true;
             }
+            // Toggle Hologram
             case 7 -> {
                 access.execute((level, blockpos) -> {
 //                    getBlockEntity(level, blockpos).ifPresent(be -> be.setPreserveExcavation(!be.preservesExcavation()));

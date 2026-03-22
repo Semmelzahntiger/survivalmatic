@@ -56,6 +56,12 @@ public abstract class AbstractVWidget extends AbstractWidget {
     protected final int relativeToAbsoluteY(float y) {
         return (int) (y * parentScreen.height);
     }
+    public int getCenterX() {
+        return getX() + getWidth() / 2;
+    }
+    public int getCenterY() {
+        return getY() + getHeight() / 2;
+    }
     @Override
     public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
         if(!isActive()) {

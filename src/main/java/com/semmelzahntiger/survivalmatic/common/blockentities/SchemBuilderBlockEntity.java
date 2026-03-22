@@ -9,6 +9,7 @@ import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedat
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.*;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
@@ -35,24 +36,29 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 
 
     public enum STATE {
-        IDLE(0),
-        RECEIVING_DATA(1),
-        SCHEMATIC_LOCKED(2),
-        READY(3),
-        BUILDING(4),
-        DUMPING(5);
+        IDLE(0, Component.translatable("survivalmatic.schembuilder.idle")),
+        RECEIVING_DATA(1,Component.translatable("survivalmatic.schembuilder.receiving_data")),
+        SCHEMATIC_LOCKED(2,Component.translatable("survivalmatic.schembuilder.schematic_locked")),
+        READY(3,Component.translatable("survivalmatic.schembuilder.ready")),
+        BUILDING(4,Component.translatable("survivalmatic.schembuilder.building")),
+        DUMPING(5,Component.translatable("survivalmatic.schembuilder.dumping")),;
         private final int id;
+        private final Component stateMessage;
         private static final Map<Integer, STATE> idToState = new HashMap<>();
         static {
             for (STATE state : values()) {
                 idToState.put(state.id, state);
             }
         }
-        STATE(int id) {
+        STATE(int id, Component stateMessageq) {
             this.id = id;
+            this.stateMessage = stateMessageq;
         }
         public int getId() {
             return id;
+        }
+        public Component getStateMessage() {
+            return stateMessage;
         }
         public static STATE getByID(int id) {
             return idToState.get(id);

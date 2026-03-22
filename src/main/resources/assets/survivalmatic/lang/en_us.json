@@ -1,3 +1,11 @@
 {
-  "key.survivalmatic.debug1": "Open SchemBuilderInterface"
+  "survivalmatic.schembuilder.idle" : "Idle",
+  "survivalmatic.schembuilder.receiving_data" : "Receiving Data...",
+  "survivalmatic.schembuilder.schematic_locked" : "Schematic Locked.",
+  "survivalmatic.schembuilder.ready" : "Builder Ready",
+  "survivalmatic.schembuilder.building" : "Building...",
+  "survivalmatic.schembuilder.dumping" : "Dumping Contents...",
+  "survivalmatic.schembuilder.progress" : "Progress: ",
+  "survivalmatic.schembuilder.paused" : "Paused: "
+
 }

@@ -3,6 +3,7 @@ package com.semmelzahntiger.survivalmatic.client.gui;
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
 import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.BasicStringWidget;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.GenericVButton;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.TextVButton;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
@@ -14,10 +15,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.animal.Panda;
 import net.minecraft.world.entity.player.Inventory;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +28,9 @@ import java.util.concurrent.CompletableFuture;
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
+    public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/bg.png");
+
+
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
 
@@ -38,7 +44,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     }
     public InterfaceState state = InterfaceState.IDLE;
 
-    public StringWidget stateWidget;
     public ScrollableDropDownList schematicList;
 
     public TextVButton loadButton;
@@ -51,6 +56,10 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     public GenericVButton trashButton;
     public GenericVButton toggleAirButton;
     public GenericVButton toggleExcavateButton;
+
+    public BasicStringWidget stateWidget;
+    public BasicStringWidget progressWidget;
+    private BasicStringWidget pauseWidget;
 
     @Override
     protected void init() {
@@ -90,6 +99,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Load"))
                 .build();
+
         TextVButton newUploadButton = TextVButton.Builder.of(0.31f, 0.2f, 0.1f, 0.1f, this)
                 .setOnPress(button -> {
                     if(ClientSchematicData.INSTANCE.getSchematicInstance() == null) {
@@ -118,6 +128,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Upload"))
                 .build();
+
 
         GenericVButton buildButton = GenericVButton.Builder.of(0.42f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 0))
@@ -176,6 +187,16 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
+        BasicStringWidget stateWidget = BasicStringWidget.Builder.of(0.42f, 0.3f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+        BasicStringWidget progressWidget = BasicStringWidget.Builder.of(0.42f, 0.4f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+        BasicStringWidget pausedWidget = BasicStringWidget.Builder.of(0.42f, 0.5f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+
         addRenderableWidget(dropDownList);
 
         addRenderableWidget(newLoad);
@@ -189,6 +210,10 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         addRenderableWidget(togglePlacesAir);
         addRenderableWidget(togglePreserveExcavation);
         addRenderableWidget(showHologramButton);
+
+        addRenderableWidget(stateWidget);
+        addRenderableWidget(progressWidget);
+        addRenderableWidget(pausedWidget);
         this.buildButton = buildButton;
         this.cancelButton = cancelButton;
         this.pauseButton = pauseButton;
@@ -200,19 +225,23 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         this.schematicList = dropDownList;
         this.loadButton = newLoad;
         this.uploadButton = newUploadButton;
+
+        this.stateWidget = stateWidget;
+        this.progressWidget = progressWidget;
+        this.pauseWidget = pausedWidget;
     }
 
     @Override
-    public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        setButtonsByState();
+    public void render(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        int stateAsInt = this.getMenu().data.get(0);
+        SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
+        setButtonsByState(state);
+        updateStringWidgets(state);
         this.renderBackground(pGuiGraphics);
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
-
     }
-    public void setButtonsByState() {
-        int stateAsInt = this.getMenu().data.get(0);
-        SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
+    public void setButtonsByState(SchemBuilderBlockEntity.STATE state) {
         switch (state) {
             case IDLE, RECEIVING_DATA, SCHEMATIC_LOCKED, DUMPING -> {
                 buildButton.active = false;
@@ -244,9 +273,16 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         }
         uploadButton.active = state == SchemBuilderBlockEntity.STATE.IDLE;
     }
-
+    public void updateStringWidgets(SchemBuilderBlockEntity.STATE state) {
+        stateWidget.setText(state.getStateMessage());
+        int currentIndex = this.getMenu().data.get(1);
+        int lastIndex = this.getMenu().data.get(2);
+        progressWidget.setText(Component.translatable("survivalmatic.schembuilder.progress").append(currentIndex + " / " + lastIndex ));
+        int paused = this.getMenu().data.get(3);
+        pauseWidget.setText(Component.translatable("survivalmatic.schembuilder.paused").append(Boolean.toString(paused == 1)));
+    }
     @Override
-    protected void renderBg(GuiGraphics guiGraphics, float v, int i, int i1) {
-
+    protected void renderBg(@NotNull GuiGraphics guiGraphics, float v, int i, int i1) {
+        guiGraphics.blit(GUI, leftPos, height  , width / 2, height / 2, 0, 0, width /2, height /2, width / 2, height / 2);
     }
 }
