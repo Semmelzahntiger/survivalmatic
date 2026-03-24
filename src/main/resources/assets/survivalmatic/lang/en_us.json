@@ -6,6 +6,6 @@
   "survivalmatic.schembuilder.building" : "Building...",
   "survivalmatic.schembuilder.dumping" : "Dumping Contents...",
   "survivalmatic.schembuilder.progress" : "Progress: ",
-  "survivalmatic.schembuilder.paused" : "Paused: "
-
+  "survivalmatic.schembuilder.paused" : "Paused: ",
+  "survivalmatic.schembuilder.excavates_and_air" : "Places Air / Keeps Excavated Blocks: "
 }

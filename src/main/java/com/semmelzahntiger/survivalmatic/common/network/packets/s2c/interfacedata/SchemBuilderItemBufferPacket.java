@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfaceda
 
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
+import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -24,7 +25,7 @@ import java.util.function.Supplier;
 public class SchemBuilderItemBufferPacket implements IPacketPayload {
     public final Map<Item, Integer> materialBufferItems;
     public final Map<Item, Integer> dumpBufferItems;
-    private Registry<Item> registry;
+    private final Registry<Item> registry;
 
     // Server side constructor
     public SchemBuilderItemBufferPacket(Map<Item, Integer> materialBufferItems, Map<Item, Integer> dumpBufferItems, Registry<Item> registry) {
@@ -47,7 +48,7 @@ public class SchemBuilderItemBufferPacket implements IPacketPayload {
 
     @Override
     public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
-
+        SchemBuilderInterfaceData.getINSTANCE().computeItemPacket(this);
     }
     public static SchemBuilderItemBufferPacket decode(FriendlyByteBuf buf) {
         ClientPacketListener connection = Minecraft.getInstance().getConnection();

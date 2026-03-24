@@ -2,10 +2,13 @@ package com.semmelzahntiger.survivalmatic.client.gui.menus;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
+import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
@@ -14,6 +17,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Optional;
 
@@ -21,10 +26,15 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
     public final ContainerLevelAccess access;
     public final GlobalPos pos;
     public final ContainerData data;
+    public final Inventory playerInventory;
+    public int trackedDumpBufferVersion = -1;
+    public int trackedMaterialBufferVersion = -1;
     public SchemBuilderMenu(int id, Inventory playerInventory, ContainerLevelAccess containerAccess, IItemHandler builderInventory, GlobalPos pos, ContainerData containerData) {
         super(ModRegistry.SCHEM_BUILDER_MENU.get(), id);
         this.pos = pos;
         this.access = containerAccess;
+        this.data = containerData;
+        this.playerInventory = playerInventory;
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
                 this.addSlot(new Slot(
@@ -43,7 +53,6 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                     142
             ));
         }
-        this.data = containerData;
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {
@@ -133,5 +142,30 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
             return Optional.of(schemBuilder);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        if(this.playerInventory.player instanceof ServerPlayer serverPlayer) {
+            access.execute((level, blockpos) -> {
+                getBlockEntity(level, blockpos).ifPresent(be -> {
+                    int dumpVer = be.getDumpBufferVersionCounter();
+                    int matVer = be.getMaterialBufferVersionCounter();
+                    if(trackedDumpBufferVersion != dumpVer || trackedMaterialBufferVersion != matVer) {
+                        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer),
+                                new SchemBuilderItemBufferPacket(
+                                        be.getMaterialBuffer(),
+                                        be.getDumpBuffer(),
+                                        be.getLevel().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get()
+                                ));
+                    }
+                    else {
+                        trackedDumpBufferVersion = dumpVer;
+                        trackedMaterialBufferVersion = matVer;
+                    }
+                });
+            });
+        }
     }
 }

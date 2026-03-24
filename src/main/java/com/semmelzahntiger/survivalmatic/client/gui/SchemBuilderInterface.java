@@ -29,8 +29,6 @@ import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
     public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/bg.png");
-
-
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
 
@@ -60,14 +58,18 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     public BasicStringWidget stateWidget;
     public BasicStringWidget progressWidget;
     private BasicStringWidget pauseWidget;
+    private BasicStringWidget excavateAndAirWidget;
 
     @Override
     protected void init() {
         super.init();
-        float aspectRatio = this.width / (float) this.height;
-
+        initSchematicWidgets();
+        initBuilderButtons();
+        initTextWidgets();
+    }
+    protected void initSchematicWidgets() {
         ScrollableDropDownList dropDownList = ScrollableDropDownList.Builder.of(
-                0.2f,0.1f, 0.1f, 0.04f, 4, Component.empty(), this)
+                        0.2f,0.1f, 0.1f, 0.04f, 4, Component.empty(), this)
                 .setEntryWidthRatio(0.95f)
                 .setEntryHeightRatio(0.9f)
                 .setListOffset(0.01f)
@@ -128,8 +130,15 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Upload"))
                 .build();
-
-
+        addRenderableWidget(dropDownList);
+        addRenderableWidget(newLoad);
+        addRenderableWidget(newUploadButton);
+        this.schematicList = dropDownList;
+        this.loadButton = newLoad;
+        this.uploadButton = newUploadButton;
+    }
+    protected void initBuilderButtons() {
+        float aspectRatio = this.width / (float) this.height;
         GenericVButton buildButton = GenericVButton.Builder.of(0.42f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 0))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build.png"))
@@ -187,21 +196,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        BasicStringWidget stateWidget = BasicStringWidget.Builder.of(0.42f, 0.3f, 0.2f, 0.1f, this)
-                .text(Component.empty())
-                .build();
-        BasicStringWidget progressWidget = BasicStringWidget.Builder.of(0.42f, 0.4f, 0.2f, 0.1f, this)
-                .text(Component.empty())
-                .build();
-        BasicStringWidget pausedWidget = BasicStringWidget.Builder.of(0.42f, 0.5f, 0.2f, 0.1f, this)
-                .text(Component.empty())
-                .build();
-
-        addRenderableWidget(dropDownList);
-
-        addRenderableWidget(newLoad);
-        addRenderableWidget(newUploadButton);
-
         addRenderableWidget(buildButton);
         addRenderableWidget(cancelButton);
         addRenderableWidget(pauseButton);
@@ -210,10 +204,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         addRenderableWidget(togglePlacesAir);
         addRenderableWidget(togglePreserveExcavation);
         addRenderableWidget(showHologramButton);
-
-        addRenderableWidget(stateWidget);
-        addRenderableWidget(progressWidget);
-        addRenderableWidget(pausedWidget);
         this.buildButton = buildButton;
         this.cancelButton = cancelButton;
         this.pauseButton = pauseButton;
@@ -221,14 +211,28 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         this.trashButton = trashButton;
         this.toggleAirButton = togglePlacesAir;
         this.toggleExcavateButton = togglePreserveExcavation;
-
-        this.schematicList = dropDownList;
-        this.loadButton = newLoad;
-        this.uploadButton = newUploadButton;
-
+    }
+    protected void initTextWidgets() {
+        BasicStringWidget stateWidget = BasicStringWidget.Builder.of(0.42f, 0.3f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+        BasicStringWidget progressWidget = BasicStringWidget.Builder.of(0.42f, 0.35f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+        BasicStringWidget pausedWidget = BasicStringWidget.Builder.of(0.42f, 0.4f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+        BasicStringWidget excavateAndAirWidget = BasicStringWidget.Builder.of(0.42f, 0.45f, 0.2f, 0.1f, this)
+                .text(Component.empty())
+                .build();
+        addRenderableWidget(stateWidget);
+        addRenderableWidget(progressWidget);
+        addRenderableWidget(pausedWidget);
+        addRenderableWidget(excavateAndAirWidget);
         this.stateWidget = stateWidget;
         this.progressWidget = progressWidget;
         this.pauseWidget = pausedWidget;
+        this.excavateAndAirWidget = excavateAndAirWidget;
     }
 
     @Override
@@ -280,6 +284,9 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         progressWidget.setText(Component.translatable("survivalmatic.schembuilder.progress").append(currentIndex + " / " + lastIndex ));
         int paused = this.getMenu().data.get(3);
         pauseWidget.setText(Component.translatable("survivalmatic.schembuilder.paused").append(Boolean.toString(paused == 1)));
+        int placesAir = this.getMenu().data.get(4);
+        int excavates = this.getMenu().data.get(5);
+        excavateAndAirWidget.setText(Component.translatable("survivalmatic.schembuilder.excavates_and_air").append((placesAir == 1) + ", " + (excavates == 1)));
     }
     @Override
     protected void renderBg(@NotNull GuiGraphics guiGraphics, float v, int i, int i1) {

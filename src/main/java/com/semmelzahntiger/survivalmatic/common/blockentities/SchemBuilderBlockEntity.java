@@ -1,34 +1,26 @@
 package com.semmelzahntiger.survivalmatic.common.blockentities;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
-import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
 import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap;
-import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderStatePacket;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.*;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class SchemBuilderBlockEntity extends BlockEntity implements ContainerData {
     public static final int BUILD_BATCH_SIZE = 120;
@@ -65,22 +57,18 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
     }
     private STATE state = STATE.IDLE;
-    private final HashMap<Item,Integer> materialBuffer = new HashMap<>();
+    private final Map<Item,Integer> materialBuffer = new HashMap<>();
+    private int materialBufferVersionCounter = 0;
 
-    private final HashMap<Item, Integer> dumpBuffer = new HashMap<>();
-    private boolean dumpBufferChanged = false;
+    private final Map<Item, Integer> dumpBuffer = new HashMap<>();
+    private int dumpBufferVersionCounter = 0;
 
     private SchematicReader.SchematicInstance serverSchematicInstance = null;
-    private Map<Item, Integer> requiredItems = new HashMap<>();
 
     private BuildInstance buildInstance = null;
     private boolean placesAir = false;
     private boolean preserveExcavation = false;
     private Vec3i offset = Vec3i.ZERO;
-
-    private String displayMessage = "Select Schematic...";
-
-    private int ticksSinceLastSync = 0;
 
     public IItemHandler itemHandler;
     LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
@@ -132,7 +120,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 
     @Override
     public void set(int i, int i1) {
-
     }
 
     @Override
@@ -145,11 +132,23 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         super.invalidateCaps();
         inventoryHandlerLazyOptional.invalidate();
     }
-    public HashMap<Item,Integer> getMaterialBuffer() {
+    public Map<Item,Integer> getMaterialBuffer() {
         return materialBuffer;
     }
-    public HashMap<Item,Integer> getDumpBuffer() {
+    public int getMaterialBufferVersionCounter() {
+        return materialBufferVersionCounter;
+    }
+    public void incrementMaterialBufferVersionCounter() {
+        materialBufferVersionCounter++;
+    }
+    public Map<Item,Integer> getDumpBuffer() {
         return dumpBuffer;
+    }
+    public int getDumpBufferVersionCounter() {
+        return dumpBufferVersionCounter;
+    }
+    public void incrementDumpBufferVersionCounter() {
+        dumpBufferVersionCounter++;
     }
     public STATE getState() {
         return state;
@@ -176,15 +175,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public boolean preservesExcavation() {
         return preserveExcavation;
     }
-    private void dumpBufferChanged() {
-        dumpBufferChanged = true;
-    }
-    public boolean hasDumpBufferChanged() {
-        return dumpBufferChanged;
-    }
-    public void confirmDumpBufferChanged() {
-        dumpBufferChanged = false;
-    }
     public void setOffset(Vec3i offset) {
         this.offset = offset;
     }
@@ -199,12 +189,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
         Survivalmatic.LOGGER.info("SchemBuilder @{}/{} received Schematic {}", this.getBlockPos(), this.getLevel().dimension(), serverSchematicInstance.name());
-    }
-    public void setDisplayMessage(String displayMessage) {
-        this.displayMessage = displayMessage;
-    }
-    public String getDisplayMessage() {
-        return displayMessage;
     }
     public static <T extends BlockEntity> void tick(Level level, BlockPos pos, BlockState state, T Entity) {
         SchemBuilderBlockEntity schemBuilderBlockEntity = (SchemBuilderBlockEntity) Entity;
@@ -228,6 +212,8 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 //                            break;
 //                        }
 //                    }
+                    materialBuffer.putAll(serverSchematicInstance.requiredItems());
+                    incrementMaterialBufferVersionCounter();
                     yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
                 }
                 yield STATE.IDLE;
@@ -248,37 +234,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             }
             case DUMPING -> dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
         };
-
-        if(ticksSinceLastSync >= 10) {
-          syncWithClients();
-          Survivalmatic.LOGGER.info(state.toString());
-          ticksSinceLastSync = 0;
-        }
-        else {
-            ticksSinceLastSync++;
-        }
-    }
-    private void syncWithClients() {
-        switch (state) {
-            case SCHEMATIC_LOCKED, DUMPING, READY -> {
-                try {
-                    Registry<Item> registry = this.getLevel().getServer().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get();
-                    SchemBuilderItemBufferPacket itemBufferPacket = new SchemBuilderItemBufferPacket(materialBuffer, dumpBuffer, registry);
-                    SchemBuilderStatePacket statePacket = new SchemBuilderStatePacket(state.getId(), getDisplayMessage());
-                    List<ServerPlayer> players = this.getLevel().getServer().getPlayerList().getPlayers().stream().filter(player -> {
-                        GlobalPos globalPos = GlobalPos.of(this.getLevel().dimension(), this.getBlockPos());
-                        return player.containerMenu instanceof SchemBuilderMenu menu && Objects.equals(menu.pos, globalPos);
-                    }).toList();
-                    players.forEach(player -> {
-                        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), itemBufferPacket);
-                        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), statePacket);
-                    });
-                }
-                catch(Exception e) {
-                    Survivalmatic.LOGGER.info("Could not sync data with Clients" + e.getMessage());
-                }
-            }
-        }
     }
     public void startBuilding() {
         if(state != STATE.READY) {
@@ -299,23 +254,19 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
         buildInstance.resume();
     }
-    public int cancel() {
+    public void cancel() {
         if(state == STATE.BUILDING && buildInstance != null) {
             buildInstance.setCanceled();
-            return 0;
         }
         else if(state == STATE.SCHEMATIC_LOCKED || state == STATE.READY) {
             dump();
-            return 0;
-        }
-        else {
-            return 1;
         }
     }
     private void dump() {
         dumpBuffer.putAll(materialBuffer);
-        dumpBufferChanged();
+        incrementDumpBufferVersionCounter();
         materialBuffer.clear();
+        incrementMaterialBufferVersionCounter();
     }
 
     private class BuildInstance {
@@ -349,7 +300,9 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         public boolean isPaused() {
             return isPaused;
         }
+        // Todo: logic for invalid replacements like bedrock
         public void tickBuild(Level level) {
+            Map<Item, Integer> cache = new HashMap<>();
             if(isCanceled) {
                 return;
             }
@@ -376,10 +329,12 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                         if(preservesExcavation()) {
                             BlockState excavatedState = level.getBlockState(pos);
                             Item excavatedItem = excavatedState.getBlock().asItem();
-                            dumpBuffer.put(excavatedItem, dumpBuffer.getOrDefault(excavatedItem, 0) + 1);
+                            cache.put(excavatedItem, cache.getOrDefault(excavatedItem, 0) + 1);
                         }
-                        Survivalmatic.LOGGER.info("Placing Block at {}", pos);
-                        level.setBlockAndUpdate(pos, toBePlaced);
+                        if(!(toBePlaced == Blocks.AIR.defaultBlockState() && !placesAir())) {
+                            level.setBlockAndUpdate(pos, toBePlaced);
+                        }
+
                         remainingBatchCount--;
                         currentIndex++;
                     }
@@ -387,9 +342,14 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 }
                 trackedWidth = 0;
             }
+            cache.forEach((curItem, count) -> {
+                dumpBuffer.merge(curItem, 1, Integer::sum);
+            });
+            incrementDumpBufferVersionCounter();
         }
         public boolean isFinished() {
             return currentIndex >= LAST_INDEX;
         }
     }
+
 }

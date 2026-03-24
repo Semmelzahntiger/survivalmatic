@@ -13,16 +13,18 @@ import java.util.Map;
 
 public class SchemBuilderItemCap implements IItemHandler {
     private final SchemBuilderBlockEntity schemBuilder;
+    private int trackedDumpBufferVersion;
     private List<Item> cachedDumpItems;
 
     public SchemBuilderItemCap(SchemBuilderBlockEntity schemBuilder) {
         this.schemBuilder = schemBuilder;
+        trackedDumpBufferVersion = schemBuilder.getDumpBufferVersionCounter();
     }
     private void validateDumpCache() {
-            if(cachedDumpItems == null || schemBuilder.hasDumpBufferChanged()) {
-                cachedDumpItems = schemBuilder.getDumpBuffer().keySet().stream().toList();
-                schemBuilder.confirmDumpBufferChanged();
-            }
+        if(trackedDumpBufferVersion != schemBuilder.getDumpBufferVersionCounter()) {
+            cachedDumpItems = schemBuilder.getDumpBuffer().keySet().stream().toList();
+            trackedDumpBufferVersion = schemBuilder.getDumpBufferVersionCounter();
+        }
     }
 
     @Override
@@ -53,7 +55,7 @@ public class SchemBuilderItemCap implements IItemHandler {
         if(requiredAmount < 0) {
             return itemStack;
         }
-        HashMap<Item, Integer> currentMaterialBuffer = schemBuilder.getMaterialBuffer();
+        Map<Item, Integer> currentMaterialBuffer = schemBuilder.getMaterialBuffer();
         int getStoredAmount = currentMaterialBuffer.getOrDefault(itemStack.getItem(), 0);
 
         if(getStoredAmount >= requiredAmount) {
@@ -70,7 +72,7 @@ public class SchemBuilderItemCap implements IItemHandler {
     @Override
     public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
         validateDumpCache();
-        HashMap<Item, Integer> currentDumpBuffer = schemBuilder.getDumpBuffer();
+        Map<Item, Integer> currentDumpBuffer = schemBuilder.getDumpBuffer();
         try {
             Item item = cachedDumpItems.get(slot);
             if(currentDumpBuffer.containsKey(item)) {
