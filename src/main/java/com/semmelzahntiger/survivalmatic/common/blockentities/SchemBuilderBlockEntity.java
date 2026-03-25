@@ -5,6 +5,9 @@ import com.semmelzahntiger.survivalmatic.common.capabilities.SchemBuilderItemCap
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
@@ -20,12 +23,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SchemBuilderBlockEntity extends BlockEntity implements ContainerData {
     public static final int BUILD_BATCH_SIZE = 120;
-
-
 
     public enum STATE {
         IDLE(0, Component.translatable("survivalmatic.schembuilder.idle")),
@@ -60,7 +62,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     private final Map<Item,Integer> materialBuffer = new HashMap<>();
     private int materialBufferVersionCounter = 0;
 
-    private final Map<Item, Integer> dumpBuffer = new HashMap<>();
+    private final LinkedHashMap<Item, Integer> dumpBuffer = new LinkedHashMap<>();
     private int dumpBufferVersionCounter = 0;
 
     private SchematicReader.SchematicInstance serverSchematicInstance = null;
@@ -203,6 +205,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             case IDLE, READY, RECEIVING_DATA -> this.state;
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
+                    // Todo: Rate limiting for performance
                     boolean enoughResource = true;
 //                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
 //                        Item item = entry.getKey();
@@ -267,6 +270,49 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         incrementDumpBufferVersionCounter();
         materialBuffer.clear();
         incrementMaterialBufferVersionCounter();
+    }
+    @Override
+    public CompoundTag serializeNBT() {
+        CompoundTag tag = super.serializeNBT();
+        ListTag materialBufferTag = new ListTag();
+        ListTag dumpBufferTag = new ListTag();
+        materialBuffer.forEach((item, amount) -> {
+            CompoundTag itemIDTag = new CompoundTag();
+            int id = Item.getId(item);
+            itemIDTag.putInt("id", id);
+            itemIDTag.putInt("amount", amount);
+            materialBufferTag.add(itemIDTag);
+        });
+        tag.put("materialBuffer", materialBufferTag);
+        dumpBuffer.forEach((item, amount) -> {
+            CompoundTag itemIDTag = new CompoundTag();
+            int id = Item.getId(item);
+            itemIDTag.putInt("id", id);
+            itemIDTag.putInt("amount", amount);
+        });
+        tag.put("dumpBuffer", dumpBufferTag);
+        return tag;
+    }
+
+    @Override
+    public void deserializeNBT(CompoundTag nbt) {
+        super.deserializeNBT(nbt);
+        ListTag materialBufferTag = nbt.getList("materialBuffer", ListTag.TAG_LIST);
+        materialBuffer.clear();
+        materialBufferTag.forEach((tag) -> {
+            CompoundTag itemIDTag = (CompoundTag) tag;
+            Item item = Item.byId(itemIDTag.getInt("id"));
+            int amount = itemIDTag.getInt("amount");
+            materialBuffer.put(item, amount);
+        });
+        ListTag dumpBufferTag = nbt.getList("dumpBuffer", ListTag.TAG_LIST);
+        dumpBuffer.clear();
+        dumpBufferTag.forEach((tag) -> {
+            CompoundTag itemIDTag = (CompoundTag) tag;
+            Item item = Item.byId(itemIDTag.getInt("id"));
+            int amount = itemIDTag.getInt("amount");
+            dumpBuffer.put(item, amount);
+        });
     }
 
     private class BuildInstance {
@@ -351,5 +397,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             return currentIndex >= LAST_INDEX;
         }
     }
+
 
 }

@@ -8,93 +8,74 @@ import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 public class SchemBuilderItemCap implements IItemHandler {
     private final SchemBuilderBlockEntity schemBuilder;
-    private int trackedDumpBufferVersion;
-    private List<Item> cachedDumpItems;
 
     public SchemBuilderItemCap(SchemBuilderBlockEntity schemBuilder) {
         this.schemBuilder = schemBuilder;
-        trackedDumpBufferVersion = schemBuilder.getDumpBufferVersionCounter();
-    }
-    private void validateDumpCache() {
-        if(trackedDumpBufferVersion != schemBuilder.getDumpBufferVersionCounter()) {
-            cachedDumpItems = schemBuilder.getDumpBuffer().keySet().stream().toList();
-            trackedDumpBufferVersion = schemBuilder.getDumpBufferVersionCounter();
-        }
     }
 
     @Override
     public int getSlots() {
-        validateDumpCache();
-        return cachedDumpItems.size();
+        return 1;
     }
 
     @Override
     public @NotNull ItemStack getStackInSlot(int i) {
-        validateDumpCache();
-        try {
-            Item item = cachedDumpItems.get(i);
-            int amount = schemBuilder.getDumpBuffer().get(item);
-            return new ItemStack(item, amount);
-        } catch (IndexOutOfBoundsException e) {
-            Survivalmatic.LOGGER.error("Tried to read an Item from a Out of Bounds Slot");
-            return ItemStack.EMPTY;
-        }
+        Iterator<Map.Entry<Item, Integer>> iter = schemBuilder.getDumpBuffer().entrySet().iterator();
+        if(!iter.hasNext()) return ItemStack.EMPTY;
+        Map.Entry<Item, Integer> entry = iter.next();
+        return new ItemStack(entry.getKey(), Math.min(entry.getKey().getMaxStackSize(), entry.getValue()));
     }
 
     @Override
     public @NotNull ItemStack insertItem(int i, @NotNull ItemStack itemStack, boolean b) {
         int insertAmount = itemStack.getCount();
         Map<Item, Integer> requiredItems = schemBuilder.getSchematicInstance().requiredItems();
+        Map<Item, Integer> currentMaterialBuffer = schemBuilder.getMaterialBuffer();
+        int getStoredAmount = currentMaterialBuffer.getOrDefault(itemStack.getItem(), 0);
         int requiredAmount = requiredItems.getOrDefault(itemStack.getItem(), -1);
+        int missingAmount = requiredAmount - getStoredAmount;
         // Return in full if not required
         if(requiredAmount < 0) {
             return itemStack;
         }
-        Map<Item, Integer> currentMaterialBuffer = schemBuilder.getMaterialBuffer();
-        int getStoredAmount = currentMaterialBuffer.getOrDefault(itemStack.getItem(), 0);
-
-        if(getStoredAmount >= requiredAmount) {
-            return ItemStack.EMPTY;
-        }
-        int missingAmount = requiredAmount - getStoredAmount;
         if(missingAmount >= insertAmount) {
+            currentMaterialBuffer.merge(itemStack.getItem(), insertAmount, Integer::sum);
+            schemBuilder.incrementMaterialBufferVersionCounter();
             return ItemStack.EMPTY;
         }
-        itemStack.shrink(missingAmount);
-        return itemStack;
+        else {
+            int remainder = insertAmount - missingAmount;
+            currentMaterialBuffer.merge(itemStack.getItem(), missingAmount, Integer::sum);
+            schemBuilder.incrementMaterialBufferVersionCounter();
+            return new ItemStack(itemStack.getItem(), remainder);
+        }
     }
 
     @Override
     public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-        validateDumpCache();
-        Map<Item, Integer> currentDumpBuffer = schemBuilder.getDumpBuffer();
-        try {
-            Item item = cachedDumpItems.get(slot);
-            if(currentDumpBuffer.containsKey(item)) {
-                int amountInDumpBuffer = currentDumpBuffer.get(cachedDumpItems.get(slot));
-                int maxStackSizeOfItem = item.getMaxStackSize(new ItemStack(item, 1));
-                if(amountInDumpBuffer <= maxStackSizeOfItem) {
-                    currentDumpBuffer.remove(item);
-                    return new ItemStack(item, amountInDumpBuffer);
-                }
-                else {
-                    currentDumpBuffer.put(item, amountInDumpBuffer - maxStackSizeOfItem);
-                    return new ItemStack(item, maxStackSizeOfItem);
-                }
-            }
-            else {
-                return ItemStack.EMPTY;
-            }
+        Iterator<Map.Entry<Item, Integer>> iter = schemBuilder.getDumpBuffer().entrySet().iterator();
+        if(!iter.hasNext()) return ItemStack.EMPTY;
+        Map.Entry<Item, Integer> entry = iter.next();
+        Item item = entry.getKey();
+        Integer storedAmount = entry.getValue();
+        int amountToExtract = Math.min(amount, entry.getKey().getMaxStackSize());
+        int actualExtract;
+        if(storedAmount <= amountToExtract) {
+            actualExtract = storedAmount;
+            iter.remove();
         }
-        catch (IndexOutOfBoundsException e) {
-            Survivalmatic.LOGGER.error("Tried to extract an Item from a Out of Bounds Slot");
-            return ItemStack.EMPTY;
+        else {
+            actualExtract = amountToExtract;
+            entry.setValue(storedAmount - amountToExtract);
         }
+        schemBuilder.incrementDumpBufferVersionCounter();
+        return new ItemStack(entry.getKey(), actualExtract);
     }
 
     @Override
