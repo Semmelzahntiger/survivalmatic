@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.items.SlotItemHandler;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -41,7 +42,7 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                         playerInventory,
                         col + row * 9 + 9,
                         8 + col * 18,
-                        84 + row * 18
+                        8 + row * 18
                 ));
             }
         }
@@ -50,9 +51,10 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                     playerInventory,
                     col,
                     8 + col * 18,
-                    142
+                    66
             ));
         }
+
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {

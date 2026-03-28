@@ -1,8 +1,5 @@
 package com.semmelzahntiger.survivalmatic.client.keybinds;
 
-import com.semmelzahntiger.survivalmatic.client.gui.SchemBuilderInterface;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 

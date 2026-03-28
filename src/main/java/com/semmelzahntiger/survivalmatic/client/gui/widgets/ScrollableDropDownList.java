@@ -14,9 +14,6 @@ import java.util.List;
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class ScrollableDropDownList extends AbstractVWidget implements IScrollableList {
-    // Debug
-    protected final ResourceLocation AREA = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/marked_area.png");
-
     public final ResourceLocation DEFAULT_ENTRY_TEXTURE;
     public final ResourceLocation BACKGROUND;
     public final ResourceLocation HOVERED;
@@ -113,11 +110,6 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
 
         this.listHeight = visibleEntries * entryHeight;
         this.openedHeight = relativeToAbsoluteY(builder.height+ builder.listOffset) + this.listHeight;
-
-        System.out.println("Offset Calc:" + this.getWidth() + " " + this.entryWidth + " " + (this.getWidth() - this.entryWidth) / 2);
-        System.out.println("Selected Margins: " + selectedBorderLeftMargin + " " + selectedBorderRightMargin + " " + selectedBorderTopMargin + " " + selectedBorderBottomMargin);
-        System.out.println("Center Position: " + this.getX() + " " + this.getWidth() +" "+ (this.getX() + this.getWidth()) / 2);
-        System.out.println("Center for Entries" + " " + entryOffsettedX + " " + entryWidth + " " + (entryOffsettedX + (entryWidth / 2)));
     }
 
     @Override
@@ -339,12 +331,12 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         public float hoveredRightMargin = 0;
         public float hoveredTopMargin = 0;
         public float hoveredBottomMargin = 0;
-        public ResourceLocation selectedBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_border.png");
+        public ResourceLocation selectedBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
         public float selectedLeftMargin = 0;
         public float selectedRightMargin = 0;
         public float selectedTopMargin = 0;
         public float selectedBottomMargin = 0;
-        public ResourceLocation listBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_border.png");
+        public ResourceLocation listBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
         public float listLeftMargin = 0;
         public float listRightMargin = 0;
         public float listTopMargin = 0;

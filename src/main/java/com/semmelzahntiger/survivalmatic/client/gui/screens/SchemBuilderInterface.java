@@ -1,24 +1,19 @@
-package com.semmelzahntiger.survivalmatic.client.gui;
+package com.semmelzahntiger.survivalmatic.client.gui.screens;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
 import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.BasicStringWidget;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.GenericVButton;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.TextVButton;
+import com.semmelzahntiger.survivalmatic.client.gui.widgets.*;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
-import com.semmelzahntiger.survivalmatic.client.gui.widgets.ScrollableDropDownList;
 import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
+import com.semmelzahntiger.survivalmatic.helper.RenderHelper;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.entity.animal.Panda;
 import net.minecraft.world.entity.player.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,10 +23,11 @@ import java.util.concurrent.CompletableFuture;
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
-    public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/bg.png");
+    public static final ResourceLocation INVENTORY = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/inventory_background.png");
+    public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/base_gui.png");
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
-
+        this.imageHeight = 90;
     }
     public enum InterfaceState {
         IDLE,
@@ -43,6 +39,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     public InterfaceState state = InterfaceState.IDLE;
 
     public ScrollableDropDownList schematicList;
+    public ScrollableList itemList;
 
     public TextVButton loadButton;
     public TextVButton uploadButton;
@@ -58,19 +55,23 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     public BasicStringWidget stateWidget;
     public BasicStringWidget progressWidget;
     private BasicStringWidget pauseWidget;
-    private BasicStringWidget excavateAndAirWidget;
+    private BasicStringWidget excavateWidget;
+    private BasicStringWidget airWidget;
 
+    // private AbstractSpriteRenderer backgroundRenderer;
     @Override
     protected void init() {
-        super.init();
+        // Sorry Mojang but what the actual fuck is this Slot logic with the background
+        this.leftPos = (this.width - imageWidth) / 2;
+        this.topPos = (int) ((this.height + imageHeight * 0.3f) / 2);
         initSchematicWidgets();
         initBuilderButtons();
         initTextWidgets();
     }
     protected void initSchematicWidgets() {
         ScrollableDropDownList dropDownList = ScrollableDropDownList.Builder.of(
-                        0.2f,0.1f, 0.1f, 0.04f, 4, Component.empty(), this)
-                .setEntryWidthRatio(0.95f)
+                        0.33f,0.14f, 0.125f, 0.04f, 4, Component.empty(), this)
+                .setEntryWidthRatio(0.9f)
                 .setEntryHeightRatio(0.9f)
                 .setListOffset(0.01f)
                 .setSelectedMargin(0.005f, 0.005f, 0.003f, 0.003f)
@@ -79,8 +80,14 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         for (String availableSchematicName : ClientSchematicData.INSTANCE.getAvailableSchematicNames()) {
             dropDownList.addTextEntry(Component.literal(availableSchematicName));
         }
+        ScrollableList itemList = ScrollableList.Builder.of(0.48f, 0.14f, 0.2f, 0.04f, 4, this,Component.empty())
+                .setBorderMargins(0.005f, 0.005f, 0.003f, 0.003f)
+                .build();
+        for (int i = 0; i < 5; i++) {
+            itemList.addTextEntry(Component.literal(String.valueOf(i)));
+        }
 
-        TextVButton newLoad = TextVButton.Builder.of(0.31f, 0.1f, 0.1f, 0.1f, this)
+        TextVButton newLoad = TextVButton.Builder.of(0.33f, 0.34f, 0.0625f, 0.05f, this)
                 .setOnPress(button -> {
                     if(dropDownList.getSelectedEntry() != null) {
                         IScrollableList.TextEntry selectedEntry = (IScrollableList.TextEntry) dropDownList.getSelectedEntry();
@@ -102,7 +109,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setText(Component.literal("Load"))
                 .build();
 
-        TextVButton newUploadButton = TextVButton.Builder.of(0.31f, 0.2f, 0.1f, 0.1f, this)
+        TextVButton newUploadButton = TextVButton.Builder.of(0.3925f, 0.34f, 0.0625f, 0.05f, this)
                 .setOnPress(button -> {
                     if(ClientSchematicData.INSTANCE.getSchematicInstance() == null) {
                         Survivalmatic.LOGGER.info("No Schematic Loaded, skip uploading...");
@@ -131,57 +138,65 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setText(Component.literal("Upload"))
                 .build();
         addRenderableWidget(dropDownList);
+        addRenderableWidget(itemList);
         addRenderableWidget(newLoad);
         addRenderableWidget(newUploadButton);
         this.schematicList = dropDownList;
+        this.itemList = itemList;
         this.loadButton = newLoad;
         this.uploadButton = newUploadButton;
     }
     protected void initBuilderButtons() {
         float aspectRatio = this.width / (float) this.height;
-        GenericVButton buildButton = GenericVButton.Builder.of(0.42f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        float buttonSize = 0.025f;
+        float buttonY = 0.4f;
+        float buttonStartX = 0.33f;
+        int buttonIdx = 0;
+        GenericVButton buildButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 0))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build_disabled.png"))
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        GenericVButton pauseButton = GenericVButton.Builder.of(0.47f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        GenericVButton pauseButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 1))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/pause.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/pause_disabled.png"))
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        GenericVButton resumeButton = GenericVButton.Builder.of(0.52f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        GenericVButton resumeButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 2))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/resume.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/resume_disabled.png"))
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        GenericVButton cancelButton = GenericVButton.Builder.of(0.57f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        GenericVButton cancelButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 3))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/cancel.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/cancel_disabled.png"))
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        GenericVButton trashButton = GenericVButton.Builder.of(0.62f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        GenericVButton trashButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 4))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/trash.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/trash_disabled.png"))
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        GenericVButton togglePlacesAir = GenericVButton.Builder.of(0.67f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        buttonIdx = 0;
+        buttonY = buttonY + buttonSize * aspectRatio;
+        GenericVButton togglePlacesAir = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 5))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/air.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/air_disabled.png"))
                 .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
-        GenericVButton togglePreserveExcavation = GenericVButton.Builder.of(0.72f, 0.1f, 0.05f, 0.05f*aspectRatio, this)
+        GenericVButton togglePreserveExcavation = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 6))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/excavate.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/excavate_disabled.png"))
@@ -189,7 +204,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
                 .build();
         // WIP
-        GenericVButton showHologramButton = GenericVButton.Builder.of(0.8f, 0.1f, 0.05f, 0.05f* aspectRatio, this)
+        GenericVButton showHologramButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize* aspectRatio, this)
                 .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 7))
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hologram.png"))
                 .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hologram_disabled.png"))
@@ -213,26 +228,35 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         this.toggleExcavateButton = togglePreserveExcavation;
     }
     protected void initTextWidgets() {
-        BasicStringWidget stateWidget = BasicStringWidget.Builder.of(0.42f, 0.3f, 0.2f, 0.1f, this)
+        float textX = 0.48f;
+        float textY = 0.3f;
+        float offset = 0.04f;
+        float yIdx = 0;
+        BasicStringWidget stateWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
                 .text(Component.empty())
                 .build();
-        BasicStringWidget progressWidget = BasicStringWidget.Builder.of(0.42f, 0.35f, 0.2f, 0.1f, this)
+        BasicStringWidget progressWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
                 .text(Component.empty())
                 .build();
-        BasicStringWidget pausedWidget = BasicStringWidget.Builder.of(0.42f, 0.4f, 0.2f, 0.1f, this)
+        BasicStringWidget pausedWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
                 .text(Component.empty())
                 .build();
-        BasicStringWidget excavateAndAirWidget = BasicStringWidget.Builder.of(0.42f, 0.45f, 0.2f, 0.1f, this)
+        BasicStringWidget excavateWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
+                .text(Component.empty())
+                .build();
+        BasicStringWidget airWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
                 .text(Component.empty())
                 .build();
         addRenderableWidget(stateWidget);
         addRenderableWidget(progressWidget);
         addRenderableWidget(pausedWidget);
-        addRenderableWidget(excavateAndAirWidget);
+        addRenderableWidget(excavateWidget);
+        addRenderableWidget(airWidget);
         this.stateWidget = stateWidget;
         this.progressWidget = progressWidget;
         this.pauseWidget = pausedWidget;
-        this.excavateAndAirWidget = excavateAndAirWidget;
+        this.excavateWidget = excavateWidget;
+        this.airWidget = airWidget;
     }
 
     @Override
@@ -245,6 +269,12 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
     }
+
+    @Override
+    protected void renderLabels(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY) {
+
+    }
+
     public void setButtonsByState(SchemBuilderBlockEntity.STATE state) {
         switch (state) {
             case IDLE, RECEIVING_DATA, SCHEMATIC_LOCKED, DUMPING -> {
@@ -286,10 +316,15 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         pauseWidget.setText(Component.translatable("survivalmatic.schembuilder.paused").append(Boolean.toString(paused == 1)));
         int placesAir = this.getMenu().data.get(4);
         int excavates = this.getMenu().data.get(5);
-        excavateAndAirWidget.setText(Component.translatable("survivalmatic.schembuilder.excavates_and_air").append((placesAir == 1) + ", " + (excavates == 1)));
+        excavateWidget.setText(Component.translatable("survivalmatic.schembuilder.keeps_excavated").append(Boolean.toString(excavates == 1)));
+        airWidget.setText(Component.translatable("survivalmatic.schembuilder.places_air").append(Boolean.toString(placesAir == 1)));
     }
     @Override
     protected void renderBg(@NotNull GuiGraphics guiGraphics, float v, int i, int i1) {
-        guiGraphics.blit(GUI, leftPos, height  , width / 2, height / 2, 0, 0, width /2, height /2, width / 2, height / 2);
+        guiGraphics.blit(INVENTORY, getGuiLeft(), getGuiTop(),0,0,this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
+
+        guiGraphics.blit(GUI, RenderHelper.toAbsoluteX(0.305f, this), RenderHelper.toAbsoluteY(0.085f, this),
+                RenderHelper.toAbsoluteX(0.4f, this), RenderHelper.toAbsoluteY(0.43f, this),
+                0,0, 188, 98, 188, 98);
     }
 }

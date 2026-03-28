@@ -235,7 +235,10 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 }
                 yield STATE.BUILDING;
             }
-            case DUMPING -> dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
+            case DUMPING -> {
+                Survivalmatic.LOGGER.info(dumpBuffer.toString());
+                yield dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
+            }
         };
     }
     public void startBuilding() {

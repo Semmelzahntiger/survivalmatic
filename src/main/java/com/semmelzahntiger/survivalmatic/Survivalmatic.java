@@ -1,6 +1,6 @@
 package com.semmelzahntiger.survivalmatic;
 
-import com.semmelzahntiger.survivalmatic.client.gui.SchemBuilderInterface;
+import com.semmelzahntiger.survivalmatic.client.gui.screens.SchemBuilderInterface;
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindEventHandler;
 import com.semmelzahntiger.survivalmatic.client.keybinds.KeyBindInteractionHandler;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
