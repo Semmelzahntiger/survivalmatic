@@ -229,6 +229,13 @@ public class SchematicReader {
     public static int to1D(int x, int y, int z, int width, int length) {
         return (y * width * length) + (z * width) + x;
     }
+    public static BlockPos from1D(int index, int width, int length) {
+        int y = index / (width * length);
+        index -= (y * width * length);
+        int z = index / width;
+        int x = index % width;
+        return new BlockPos(x, y, z);
+    }
 
     /**
      * Asynchronous Version of {@link SchematicReader#readSchematicFromBuffer(String name,ByteArrayInputStream, String, HolderLookup.Provider)}
@@ -237,7 +244,6 @@ public class SchematicReader {
     public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromBufferAsync(String name,ByteArrayInputStream stream, String fileExtension, HolderLookup.Provider registry) {
         return CompletableFuture.supplyAsync(() -> readSchematicFromBuffer(name, stream, fileExtension, registry));
     }
-
     /**
      * @apiNote Currently Serves no purpose, in the future I intend to allow users to upload Schematics to the Server and share them with all players
      * Asynchronously reads Schematic from File
@@ -245,6 +251,7 @@ public class SchematicReader {
      * @param registry RegistryAccess
      * @return {@link CompletableFuture} with the Optional {@link SchematicInstance SchematicInstance}
      */
+    @Deprecated
     public static CompletableFuture<Optional<SchematicInstance>> getSchematicFromFileAsync(File file, HolderLookup.Provider registry) {
         return CompletableFuture.supplyAsync(() -> {
             Optional<ByteArrayInputStream> stream = readFileAsInputStream(file);
@@ -290,7 +297,13 @@ public class SchematicReader {
                 int index = to1D(x,y,z,width,length);
                 int paletteId = blockData[index];
                 return palette.getOrDefault(paletteId, Blocks.AIR.defaultBlockState());
-            }
+        }
+        public BlockPos getBlockPosFrom1D(int idx) {
+            return from1D(idx,width,length);
+        }
+        public BlockState getBlockStateFrom1D(int index) {
+            return palette.getOrDefault(blockData[index], Blocks.AIR.defaultBlockState());
+        }
         public Map<Item, Integer> getRequiredItemsCopy() {
                 return Map.copyOf(requiredItems);
             }

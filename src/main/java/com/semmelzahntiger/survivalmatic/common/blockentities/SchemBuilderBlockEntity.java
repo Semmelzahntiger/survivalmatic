@@ -21,7 +21,6 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.openjdk.nashorn.internal.objects.LinkedMap;
 
 import java.util.*;
 
@@ -69,7 +68,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     private BuildInstance buildInstance = null;
     private boolean placesAir = false;
     private boolean preserveExcavation = false;
-    private Vec3i offset = Vec3i.ZERO;
+    private Vec3i offset = new Vec3i(1,0,1);
 
     public IItemHandler itemHandler;
     LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
@@ -105,7 +104,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             }
             case 2 -> {
                 if(buildInstance != null) {
-                    yield buildInstance.LAST_INDEX;
+                    yield buildInstance.INDEX_GUARD;
                 }
                 yield 0;
             }
@@ -408,31 +407,17 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             dumpBuffer.put(item, amount);
         });
     }
-    private record DebugComparer(int x, int y, int z) {
-        @Override
-        public String toString() {
-            return x + ", " + y + ", " + z;
-        }
-    }
-
     private class BuildInstance {
-        private int trackedWidth = 0;
-        private int trackedHeight = 0;
-        private int trackedLength = 0;
-
-        private final int LAST_INDEX;
-        private int currentIndex = 1;
+        private final int INDEX_GUARD;
+        private int currentIndex = 0;
         final SchematicReader.SchematicInstance instance;
-
-        // DEBUG
-        private Map<DebugComparer, Integer> trackers = new HashMap<>();
 
         private boolean isCanceled = false;
         private boolean isPaused = false;
 
         private BuildInstance(SchematicReader.SchematicInstance instance) {
             this.instance = instance;
-            LAST_INDEX = instance.height() * instance.width() * instance.length();
+            INDEX_GUARD = instance.height() * instance.width() * instance.length();
         }
         public void setCanceled() {
             isCanceled = true;
@@ -451,64 +436,49 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
         // Todo: logic for invalid replacements like bedrock
         public void tickBuild(Level level) {
-            Survivalmatic.LOGGER.info("{}", materialBuffer);
-            Survivalmatic.LOGGER.info("Items: {}", materialBuffer.values().stream().reduce(0, Integer::sum));
             Map<Item, Integer> cache = new HashMap<>();
             if(isCanceled) {
                 return;
             }
             int remainingBatchCount = BUILD_BATCH_SIZE;
-            batch:
-            for (int y = trackedHeight; y < instance.height(); y++) {
-                trackedHeight = y;
-                for (int x = trackedWidth; x < instance.width(); x++) {
-                    trackedWidth = x;
-                    for (int z = trackedLength; z < instance.length(); z++) {
-                        // If batch is exhausted, continue in the next tick, or if build is finished terminate as well (in case the tick is triggered even if it shouldn't)
-                        if(remainingBatchCount == 0 || isFinished()) break batch;
-                        trackedLength = z;
-                        BlockPos pos = SchemBuilderBlockEntity.this.getBlockPos()
-                                .offset(SchemBuilderBlockEntity.this.offset)
-                                .offset(x, y, z)
-                                .offset(1,0,1);
-                        BlockState toBePlaced = instance.getBlockState(x, y, z);
-                        Item item = toBePlaced.getBlock().asItem();
-
-                        if(materialBuffer.containsKey(item)) {
-                            int inStore = materialBuffer.get(item);
-                            materialBuffer.put(item, materialBuffer.get(item) - 1);
-                        }
-                        if(preservesExcavation()) {
-                            BlockState excavatedState = level.getBlockState(pos);
-                            Item excavatedItem = excavatedState.getBlock().asItem();
-                            cache.put(excavatedItem, cache.getOrDefault(excavatedItem, 0) + 1);
-                        }
-                        if(!(toBePlaced == Blocks.AIR.defaultBlockState() && !placesAir())) {
-                            level.setBlockAndUpdate(pos, toBePlaced);
-                        }
-                        DebugComparer comparer = new DebugComparer(x, y, z);
-                        trackers.put(comparer, trackers.getOrDefault(comparer,0) + 1);
-                        remainingBatchCount--;
-                        currentIndex++;
+            for (int i = currentIndex; i < INDEX_GUARD; i++) {
+                currentIndex++;
+                remainingBatchCount--;
+                BlockPos pos = instance.getBlockPosFrom1D(i)
+                        .offset(offset)
+                        .offset(getBlockPos());
+                BlockState state = instance.getBlockStateFrom1D(i);
+                Item item = state.getBlock().asItem();
+                if(materialBuffer.containsKey(item)) {
+                    int stored  = materialBuffer.get(item);
+                    if(stored <= 1) {
+                        materialBuffer.remove(item);
                     }
-                    trackedLength = 0;
+                    else {
+                        materialBuffer.put(item, materialBuffer.get(item) - 1);
+                    }
                 }
-                trackedWidth = 0;
+                if(preservesExcavation()) {
+                    BlockState excavatedState = level.getBlockState(pos);
+                    if(excavatedState != Blocks.AIR.defaultBlockState()) {
+                        Item excavatedItem = excavatedState.getBlock().asItem();
+                        cache.put(excavatedItem, cache.getOrDefault(excavatedItem, 0) + 1);
+                    }
+                }
+                if(!(state == Blocks.AIR.defaultBlockState() && !placesAir())) {
+                            level.setBlockAndUpdate(pos, state);
+                }
+                if(remainingBatchCount == 0) {
+                    break;
+                }
             }
             cache.forEach((curItem, count) -> {
                 dumpBuffer.merge(curItem, 1, Integer::sum);
             });
             incrementDumpBufferVersionCounter();
-            for (Map.Entry<DebugComparer, Integer> debugComparerIntegerEntry : trackers.entrySet()) {
-                int count = debugComparerIntegerEntry.getValue();
-                DebugComparer comparer = debugComparerIntegerEntry.getKey();
-                if(count > 1) {
-                    Survivalmatic.LOGGER.info("DUPE PLACEMENT FOUND AT {}, PLACED {} TIMES", comparer, count);
-                }
-            }
         }
         public boolean isFinished() {
-            return currentIndex >= LAST_INDEX;
+            return currentIndex >= INDEX_GUARD;
         }
     }
 
