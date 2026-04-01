@@ -7,10 +7,10 @@ import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -21,10 +21,9 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.openjdk.nashorn.internal.objects.LinkedMap;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class SchemBuilderBlockEntity extends BlockEntity implements ContainerData {
     public static final int BUILD_BATCH_SIZE = 120;
@@ -74,6 +73,9 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 
     public IItemHandler itemHandler;
     LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
+
+    public ItemStack inputSlot = ItemStack.EMPTY;
+    public ItemStack outputSlot = ItemStack.EMPTY;
 
     public SchemBuilderBlockEntity(BlockPos pPos, BlockState pBlockState) {
         super(ModRegistry.SCHEM_BUILDER_BE.get(), pPos, pBlockState);
@@ -133,6 +135,18 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public void invalidateCaps() {
         super.invalidateCaps();
         inventoryHandlerLazyOptional.invalidate();
+    }
+    public ItemStack getInputSlot() {
+        return inputSlot;
+    }
+    public void setInputSlot(ItemStack inputSlot) {
+        this.inputSlot = inputSlot;
+    }
+    public ItemStack getOutputSlot() {
+        return outputSlot;
+    }
+    public void setOutputSlot(ItemStack outputSlot) {
+        this.outputSlot = outputSlot;
     }
     public Map<Item,Integer> getMaterialBuffer() {
         return materialBuffer;
@@ -196,7 +210,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         SchemBuilderBlockEntity schemBuilderBlockEntity = (SchemBuilderBlockEntity) Entity;
         schemBuilderBlockEntity.internalTick(level, pos, state);
     }
-    // Todo: Refactor Tick Method
+
     private void internalTick(Level level, BlockPos pos, BlockState blockState) {
         if(level.isClientSide()) {
             return;
@@ -205,7 +219,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             case IDLE, READY, RECEIVING_DATA -> this.state;
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
-                    // Todo: Rate limiting for performance
                     boolean enoughResource = true;
 //                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
 //                        Item item = entry.getKey();
@@ -215,6 +228,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 //                            break;
 //                        }
 //                    }
+                    tickInputSlot();
                     materialBuffer.putAll(serverSchematicInstance.requiredItems());
                     incrementMaterialBufferVersionCounter();
                     yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
@@ -236,10 +250,87 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 yield STATE.BUILDING;
             }
             case DUMPING -> {
-                Survivalmatic.LOGGER.info(dumpBuffer.toString());
+                tickOutputSlot();
+                Survivalmatic.LOGGER.info(getDumpBuffer().toString());
                 yield dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
             }
         };
+    }
+    private void tickInputSlot() {
+        ItemStack inputSlotItem = getInputSlot();
+        if(state != STATE.SCHEMATIC_LOCKED || inputSlotItem.isEmpty()) return;
+        Map<Item, Integer> storedItems = getMaterialBuffer();
+        Map<Item, Integer> requiredItems = getSchematicInstance().requiredItems();
+
+        Item item = getInputSlot().getItem();
+        int count = inputSlotItem.getCount();
+
+        if(!requiredItems.containsKey(item)) {
+           tryTransferSlot();
+        }
+        else {
+            int maxStorable = requiredItems.get(item);
+            int storedAmount = storedItems.getOrDefault(item, 0);
+            int remainder = count + storedAmount - maxStorable;
+            if(remainder > 0) {
+                storedItems.put(item, maxStorable);
+                inputSlotItem.setCount(remainder);
+                tryTransferSlot();
+            }
+            else {
+                storedItems.put(item, count);
+                setInputSlot(ItemStack.EMPTY);
+            }
+        }
+    }
+    private void tickOutputSlot() {
+        ItemStack outputSlotItem = getOutputSlot();
+        LinkedHashMap<Item,Integer> dumpBuffer = (LinkedHashMap<Item, Integer>) getDumpBuffer();
+        if(state != STATE.DUMPING && !dumpBuffer.isEmpty() && outputSlotItem.isEmpty()) {
+            Iterator<Map.Entry<Item,Integer>> iterator = dumpBuffer.entrySet().iterator();
+            Map.Entry<Item,Integer> item = iterator.next();
+            ItemStack newItem = new ItemStack(item.getKey());
+            int storedAmount = item.getValue();
+            int maxCount = newItem.getMaxStackSize();
+            int outputted;
+            if(storedAmount > maxCount) {
+                item.setValue(storedAmount - maxCount);
+                outputted = maxCount;
+            }
+            else {
+                iterator.remove();
+                outputted = storedAmount;
+            }
+            ItemStack outputtedItem = new ItemStack(item.getKey());
+            outputtedItem.setCount(outputted);
+            setOutputSlot(outputtedItem);
+        }
+    }
+    private void tryTransferSlot() {
+        ItemStack inputSlotItem = getInputSlot();
+        ItemStack outputSlotItem = getOutputSlot();
+        if(inputSlotItem.isEmpty()) {
+            return;
+        }
+        Item item = inputSlotItem.getItem();
+        int count = inputSlotItem.getCount();
+
+        if(outputSlotItem.isEmpty()) {
+            setOutputSlot(inputSlotItem);
+            setInputSlot(ItemStack.EMPTY);
+        }
+        else if (outputSlotItem.getItem() == item) {
+            int maxInStack = outputSlotItem.getMaxStackSize();
+            int addable = maxInStack - outputSlotItem.getCount();
+            if(addable >= count) {
+                setInputSlot(ItemStack.EMPTY);
+                outputSlotItem.grow(count);
+            }
+            else {
+                inputSlotItem.shrink(addable);
+                outputSlotItem.grow(addable);
+            }
+        }
     }
     public void startBuilding() {
         if(state != STATE.READY) {
@@ -317,6 +408,12 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             dumpBuffer.put(item, amount);
         });
     }
+    private record DebugComparer(int x, int y, int z) {
+        @Override
+        public String toString() {
+            return x + ", " + y + ", " + z;
+        }
+    }
 
     private class BuildInstance {
         private int trackedWidth = 0;
@@ -326,6 +423,9 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         private final int LAST_INDEX;
         private int currentIndex = 1;
         final SchematicReader.SchematicInstance instance;
+
+        // DEBUG
+        private Map<DebugComparer, Integer> trackers = new HashMap<>();
 
         private boolean isCanceled = false;
         private boolean isPaused = false;
@@ -351,6 +451,8 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
         // Todo: logic for invalid replacements like bedrock
         public void tickBuild(Level level) {
+            Survivalmatic.LOGGER.info("{}", materialBuffer);
+            Survivalmatic.LOGGER.info("Items: {}", materialBuffer.values().stream().reduce(0, Integer::sum));
             Map<Item, Integer> cache = new HashMap<>();
             if(isCanceled) {
                 return;
@@ -371,8 +473,9 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                                 .offset(1,0,1);
                         BlockState toBePlaced = instance.getBlockState(x, y, z);
                         Item item = toBePlaced.getBlock().asItem();
-                        // A build can only start if all materials are present, so its assumed the only missing item in here is air which will be ignored
+
                         if(materialBuffer.containsKey(item)) {
+                            int inStore = materialBuffer.get(item);
                             materialBuffer.put(item, materialBuffer.get(item) - 1);
                         }
                         if(preservesExcavation()) {
@@ -383,7 +486,8 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                         if(!(toBePlaced == Blocks.AIR.defaultBlockState() && !placesAir())) {
                             level.setBlockAndUpdate(pos, toBePlaced);
                         }
-
+                        DebugComparer comparer = new DebugComparer(x, y, z);
+                        trackers.put(comparer, trackers.getOrDefault(comparer,0) + 1);
                         remainingBatchCount--;
                         currentIndex++;
                     }
@@ -395,6 +499,13 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 dumpBuffer.merge(curItem, 1, Integer::sum);
             });
             incrementDumpBufferVersionCounter();
+            for (Map.Entry<DebugComparer, Integer> debugComparerIntegerEntry : trackers.entrySet()) {
+                int count = debugComparerIntegerEntry.getValue();
+                DebugComparer comparer = debugComparerIntegerEntry.getKey();
+                if(count > 1) {
+                    Survivalmatic.LOGGER.info("DUPE PLACEMENT FOUND AT {}, PLACED {} TIMES", comparer, count);
+                }
+            }
         }
         public boolean isFinished() {
             return currentIndex >= LAST_INDEX;

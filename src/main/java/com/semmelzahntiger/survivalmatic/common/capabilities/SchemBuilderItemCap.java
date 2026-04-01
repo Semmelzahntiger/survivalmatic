@@ -1,16 +1,10 @@
 package com.semmelzahntiger.survivalmatic.common.capabilities;
 
-import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
-import net.minecraft.world.item.Item;
+import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class SchemBuilderItemCap implements IItemHandler {
     private final SchemBuilderBlockEntity schemBuilder;
@@ -26,56 +20,66 @@ public class SchemBuilderItemCap implements IItemHandler {
 
     @Override
     public @NotNull ItemStack getStackInSlot(int i) {
-        Iterator<Map.Entry<Item, Integer>> iter = schemBuilder.getDumpBuffer().entrySet().iterator();
-        if(!iter.hasNext()) return ItemStack.EMPTY;
-        Map.Entry<Item, Integer> entry = iter.next();
-        return new ItemStack(entry.getKey(), Math.min(entry.getKey().getMaxStackSize(), entry.getValue()));
+        if(i == 0) return schemBuilder.getInputSlot();
+        else if (i == 1) return schemBuilder.getOutputSlot();
+        else return ItemStack.EMPTY;
     }
 
     @Override
     public @NotNull ItemStack insertItem(int i, @NotNull ItemStack itemStack, boolean b) {
-        int insertAmount = itemStack.getCount();
-        Map<Item, Integer> requiredItems = schemBuilder.getSchematicInstance().requiredItems();
-        Map<Item, Integer> currentMaterialBuffer = schemBuilder.getMaterialBuffer();
-        int getStoredAmount = currentMaterialBuffer.getOrDefault(itemStack.getItem(), 0);
-        int requiredAmount = requiredItems.getOrDefault(itemStack.getItem(), -1);
-        int missingAmount = requiredAmount - getStoredAmount;
-        // Return in full if not required
-        if(requiredAmount < 0) {
-            return itemStack;
-        }
-        if(missingAmount >= insertAmount) {
-            currentMaterialBuffer.merge(itemStack.getItem(), insertAmount, Integer::sum);
-            schemBuilder.incrementMaterialBufferVersionCounter();
-            return ItemStack.EMPTY;
+        if(i != 0) return itemStack;
+        ItemStack stack = schemBuilder.getInputSlot().copy();
+        if(stack.getItem().equals(itemStack.getItem())) {
+            int insertAmount = itemStack.getCount();
+            int storedAmount = stack.getCount();
+            int maxAmount = stack.getMaxStackSize();
+            int insertable = maxAmount - storedAmount;
+            if(insertable >= insertAmount) {
+                stack.setCount(insertAmount);
+                return ItemStack.EMPTY;
+            }
+            else {
+                int sub = insertAmount - insertable;
+                stack.setCount(maxAmount);
+                ItemStack returned = itemStack.copy();
+                returned.setCount(sub);
+                return returned;
+            }
         }
         else {
-            int remainder = insertAmount - missingAmount;
-            currentMaterialBuffer.merge(itemStack.getItem(), missingAmount, Integer::sum);
-            schemBuilder.incrementMaterialBufferVersionCounter();
-            return new ItemStack(itemStack.getItem(), remainder);
+            schemBuilder.setInputSlot(itemStack);
+            return stack;
         }
     }
 
     @Override
     public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-        Iterator<Map.Entry<Item, Integer>> iter = schemBuilder.getDumpBuffer().entrySet().iterator();
-        if(!iter.hasNext()) return ItemStack.EMPTY;
-        Map.Entry<Item, Integer> entry = iter.next();
-        Item item = entry.getKey();
-        Integer storedAmount = entry.getValue();
-        int amountToExtract = Math.min(amount, entry.getKey().getMaxStackSize());
-        int actualExtract;
-        if(storedAmount <= amountToExtract) {
-            actualExtract = storedAmount;
-            iter.remove();
+        if(slot == 0) {
+            ItemStack inputSlot = schemBuilder.getInputSlot();
+            return getReturnedItem(amount, inputSlot);
+        }
+        else if (slot == 1) {
+            ItemStack outputSlot = schemBuilder.getOutputSlot();
+            return getReturnedItem(amount, outputSlot);
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @NotNull
+    private ItemStack getReturnedItem(int amount, ItemStack slotItemStack) {
+        if(slotItemStack.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        int storedAmount = slotItemStack.getCount();
+        ItemStack returned = slotItemStack.copy();
+        if(amount >= storedAmount) {
+            schemBuilder.setInputSlot(ItemStack.EMPTY);
         }
         else {
-            actualExtract = amountToExtract;
-            entry.setValue(storedAmount - amountToExtract);
+            returned.setCount(amount);
+            slotItemStack.setCount(storedAmount-amount);
         }
-        schemBuilder.incrementDumpBufferVersionCounter();
-        return new ItemStack(entry.getKey(), actualExtract);
+        return returned;
     }
 
     @Override
@@ -85,7 +89,9 @@ public class SchemBuilderItemCap implements IItemHandler {
 
     @Override
     public boolean isItemValid(int i, @NotNull ItemStack itemStack) {
-        return schemBuilder.getSchematicInstance().requiredItems().containsKey(itemStack.getItem());
+        if(i != 0) return false;
+        SchematicReader.SchematicInstance instance = schemBuilder.getSchematicInstance();
+        return instance != null && schemBuilder.getSchematicInstance().requiredItems().containsKey(itemStack.getItem());
     }
 
 }

@@ -58,7 +58,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     private BasicStringWidget excavateWidget;
     private BasicStringWidget airWidget;
 
-    // private AbstractSpriteRenderer backgroundRenderer;
     @Override
     protected void init() {
         // Sorry Mojang but what the actual fuck is this Slot logic with the background

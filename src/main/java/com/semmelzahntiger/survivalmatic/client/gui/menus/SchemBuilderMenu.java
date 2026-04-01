@@ -28,6 +28,7 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
     public final GlobalPos pos;
     public final ContainerData data;
     public final Inventory playerInventory;
+    public final IItemHandler itemHandler;
     public int trackedDumpBufferVersion = -1;
     public int trackedMaterialBufferVersion = -1;
     public SchemBuilderMenu(int id, Inventory playerInventory, ContainerLevelAccess containerAccess, IItemHandler builderInventory, GlobalPos pos, ContainerData containerData) {
@@ -36,6 +37,7 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         this.access = containerAccess;
         this.data = containerData;
         this.playerInventory = playerInventory;
+        this.itemHandler = builderInventory;
         for (int row = 0; row < 3; ++row) {
             for (int col = 0; col < 9; ++col) {
                 this.addSlot(new Slot(
@@ -54,16 +56,17 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                     66
             ));
         }
-
+        this.addSlot(new SlotItemHandler(builderInventory,0,-8, -38));
+        this.addSlot(new SlotItemHandler(builderInventory,1,-8, -20));
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {
         this(pContainerId, playerInventory,ContainerLevelAccess.NULL, new ItemStackHandler(2), pBuffer.readGlobalPos(), new SimpleContainerData(6));
     }
-
+    // Todo: Implement quick moving
     @Override
     public ItemStack quickMoveStack(Player player, int i) {
-        return null;
+       return null;
     }
 
     @Override

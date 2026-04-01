@@ -95,6 +95,8 @@ public class SchematicReader {
     }
     private static Optional<SchematicInstance> readSchemFile(String name,ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
+            int debugCountAir = 0;
+            int debugCountItem = 0;
             CompoundTag schematicRead = NbtIo.readCompressed(stream);
             CompoundTag schematicData = schematicRead.contains("Schematic") ? schematicRead.getCompound("Schematic") : schematicRead;
 
@@ -173,9 +175,14 @@ public class SchematicReader {
                 Item item = itemMap.get(value);
                 if (item != null && item != Items.AIR) {
                     requiredItems.merge(item, 1, Integer::sum);
+                    debugCountItem++;
+                }
+                else {
+                    debugCountAir++;
                 }
             }
             Survivalmatic.LOGGER.info("Read schematic successfully");
+            Survivalmatic.LOGGER.info("DEBUG: {}, {} | {}/ {}", debugCountItem, debugCountAir, debugCountItem + debugCountAir, width*height*length);
             return Optional.of(new SchematicInstance(name,width, height, length, blockDataIntegers, schematicOffset, blockStateMap, requiredItems));
         }
         catch (IOException exception) {
