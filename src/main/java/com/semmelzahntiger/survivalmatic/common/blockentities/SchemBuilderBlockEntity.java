@@ -96,24 +96,9 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             // state sync
             case 0 -> state.getId();
             // build Instance Sync
-            case 1 -> {
-                if(buildInstance != null) {
-                    yield buildInstance.currentIndex;
-                }
-                yield 0;
-            }
-            case 2 -> {
-                if(buildInstance != null) {
-                    yield buildInstance.INDEX_GUARD;
-                }
-                yield 0;
-            }
-            case 3 -> {
-                if(buildInstance != null) {
-                    yield buildInstance.isPaused ? 1 : 0;
-                }
-                yield 0;
-            }
+            case 1 -> buildInstance != null ? buildInstance.currentIndex : 0;
+            case 2 -> buildInstance != null ? buildInstance.INDEX_LIMIT : 0;
+            case 3 -> buildInstance != null && buildInstance.isPaused ? 1 : 0;
             // Active Sync
             case 4 -> placesAir ? 1 : 0;
             case 5 -> preserveExcavation ? 1 : 0;
@@ -218,6 +203,8 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             case IDLE, READY, RECEIVING_DATA -> this.state;
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
+                    tickInputSlot();
+
                     boolean enoughResource = true;
 //                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
 //                        Item item = entry.getKey();
@@ -227,10 +214,13 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 //                            break;
 //                        }
 //                    }
-                    tickInputSlot();
                     materialBuffer.putAll(serverSchematicInstance.requiredItems());
                     incrementMaterialBufferVersionCounter();
-                    yield enoughResource ? STATE.READY : STATE.SCHEMATIC_LOCKED;
+                    if(enoughResource) {
+                        buildInstance = new BuildInstance(getSchematicInstance());
+                        yield STATE.READY;
+                    }
+                    yield STATE.SCHEMATIC_LOCKED;
                 }
                 yield STATE.IDLE;
             }
@@ -335,7 +325,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         if(state != STATE.READY) {
             return;
         }
-        buildInstance = new BuildInstance(serverSchematicInstance);
         state = STATE.BUILDING;
     }
     public void pauseBuilding() {
@@ -408,7 +397,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         });
     }
     private class BuildInstance {
-        private final int INDEX_GUARD;
+        private final int INDEX_LIMIT;
         private int currentIndex = 0;
         final SchematicReader.SchematicInstance instance;
 
@@ -417,7 +406,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 
         private BuildInstance(SchematicReader.SchematicInstance instance) {
             this.instance = instance;
-            INDEX_GUARD = instance.height() * instance.width() * instance.length();
+            INDEX_LIMIT = instance.height() * instance.width() * instance.length();
         }
         public void setCanceled() {
             isCanceled = true;
@@ -436,12 +425,13 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
         // Todo: logic for invalid replacements like bedrock
         public void tickBuild(Level level) {
-            Map<Item, Integer> cache = new HashMap<>();
             if(isCanceled) {
                 return;
             }
+
+            Map<Item, Integer> cache = new HashMap<>();
             int remainingBatchCount = BUILD_BATCH_SIZE;
-            for (int i = currentIndex; i < INDEX_GUARD; i++) {
+            for (int i = currentIndex; i < INDEX_LIMIT; i++) {
                 currentIndex++;
                 remainingBatchCount--;
                 BlockPos pos = instance.getBlockPosFrom1D(i)
@@ -472,13 +462,11 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                     break;
                 }
             }
-            cache.forEach((curItem, count) -> {
-                dumpBuffer.merge(curItem, 1, Integer::sum);
-            });
+            cache.forEach((curItem, count) -> dumpBuffer.merge(curItem, 1, Integer::sum));
             incrementDumpBufferVersionCounter();
         }
         public boolean isFinished() {
-            return currentIndex >= INDEX_GUARD;
+            return currentIndex >= INDEX_LIMIT;
         }
     }
 
