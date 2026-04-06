@@ -2,6 +2,7 @@ package com.semmelzahntiger.survivalmatic.client.gui.screens;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
+import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.*;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
@@ -9,15 +10,18 @@ import com.semmelzahntiger.survivalmatic.client.schem.ClientPayloadManager;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import com.semmelzahntiger.survivalmatic.helper.RenderHelper;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
@@ -25,6 +29,8 @@ import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
     public static final ResourceLocation INVENTORY = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/inventory_background.png");
     public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/base_gui.png");
+    public static final ResourceLocation GUI_SIDE = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/gui_medium_tall.png");
+    public static final ResourceLocation IO_SLOTS = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/io.png");
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
         this.imageHeight = 90;
@@ -37,6 +43,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         UPLOADING_SCHEMATIC,
     }
     public InterfaceState state = InterfaceState.IDLE;
+    public int tracker = -1;
 
     public ScrollableDropDownList schematicList;
     public ScrollableList itemList;
@@ -260,6 +267,15 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
 
     @Override
     public void render(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        int dataTracker = SchemBuilderInterfaceData.getINSTANCE().getTracker();
+        if(tracker != dataTracker) {
+            tracker = dataTracker;
+            Map<Item, Integer> materialBuffer =  SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferItems();
+            materialBuffer.forEach((item, amt) -> {
+
+            });
+            Map<Item, Integer> dumpBuffer =  SchemBuilderInterfaceData.getINSTANCE().getDumpBufferItems();
+        }
         int stateAsInt = this.getMenu().data.get(0);
         SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
         setButtonsByState(state);
@@ -325,5 +341,9 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         guiGraphics.blit(GUI, RenderHelper.toAbsoluteX(0.305f, this), RenderHelper.toAbsoluteY(0.085f, this),
                 RenderHelper.toAbsoluteX(0.4f, this), RenderHelper.toAbsoluteY(0.43f, this),
                 0,0, 188, 98, 188, 98);
+        guiGraphics.blit(GUI_SIDE,RenderHelper.toAbsoluteX(0.72f, this), RenderHelper.toAbsoluteY(0.085f, this),
+                RenderHelper.toAbsoluteX(0.2f, this), RenderHelper.toAbsoluteY(0.43f, this),
+                0,0, 60, 98, 60, 98);
+        guiGraphics.blit(IO_SLOTS,getGuiLeft()-36, getGuiTop()-64,0,0, 28,46,28,46);
     }
 }
