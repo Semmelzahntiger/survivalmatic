@@ -56,8 +56,8 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                     66
             ));
         }
-        this.addSlot(new SlotItemHandler(builderInventory,0,-8, -38));
-        this.addSlot(new SlotItemHandler(builderInventory,1,-8, -20));
+        this.addSlot(new SlotItemHandler(builderInventory,0,-30, -58));
+        this.addSlot(new SlotItemHandler(builderInventory,1,-30, -40));
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {
@@ -164,8 +164,6 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                                         be.getDumpBuffer(),
                                         be.getLevel().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get()
                                 ));
-                    }
-                    else {
                         trackedDumpBufferVersion = dumpVer;
                         trackedMaterialBufferVersion = matVer;
                     }
