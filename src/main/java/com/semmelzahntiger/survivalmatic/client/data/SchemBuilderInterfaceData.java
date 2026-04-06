@@ -3,6 +3,7 @@ package com.semmelzahntiger.survivalmatic.client.data;
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -11,8 +12,8 @@ import java.util.Map;
 
 @OnlyIn(Dist.CLIENT)
 public class SchemBuilderInterfaceData {
-    public Map<Item, Integer> materialBufferItems = new HashMap<>();
-    public Map<Item, Integer> dumpBufferItems = new HashMap<>();
+    public Map<ItemStack, Integer> materialBufferItems = new HashMap<>();
+    public Map<ItemStack, Integer> dumpBufferItems = new HashMap<>();
     public int tracker = 0;
     private static final SchemBuilderInterfaceData INSTANCE = new SchemBuilderInterfaceData();
 
@@ -20,16 +21,17 @@ public class SchemBuilderInterfaceData {
         return INSTANCE;
     }
     public void computeItemPacket(SchemBuilderItemBufferPacket packet) {
-        materialBufferItems = packet.materialBufferItems;
-        dumpBufferItems = packet.dumpBufferItems;
+        materialBufferItems.clear();
+        packet.materialBufferItems.forEach((item, amount) -> materialBufferItems.put(new ItemStack(item), amount));
+        packet.materialBufferItems.forEach((item, amount) -> dumpBufferItems.put(new ItemStack(item), amount));
         tracker++;
         Survivalmatic.LOGGER.info(materialBufferItems.toString());
         Survivalmatic.LOGGER.info(dumpBufferItems.toString());
     }
-    public Map<Item, Integer> getMaterialBufferItems() {
+    public Map<ItemStack, Integer> getMaterialBufferItems() {
         return materialBufferItems;
     }
-    public Map<Item, Integer> getDumpBufferItems() {
+    public Map<ItemStack, Integer> getDumpBufferItems() {
         return dumpBufferItems;
     }
     public int getTracker() {

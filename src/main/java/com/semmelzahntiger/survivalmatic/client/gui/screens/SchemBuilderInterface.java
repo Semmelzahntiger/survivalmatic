@@ -18,6 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -89,10 +90,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         ScrollableList itemList = ScrollableList.Builder.of(0.48f, 0.14f, 0.2f, 0.04f, 4, this,Component.empty())
                 .setBorderMargins(0.005f, 0.005f, 0.003f, 0.003f)
                 .build();
-        for (int i = 0; i < 5; i++) {
-            itemList.addTextEntry(Component.literal(String.valueOf(i)));
-        }
-
+        System.out.println("Bitch:" + itemList.getX() + " " + itemList.getY() + " " + itemList.getWidth() + " " + itemList.getHeight());
         TextVButton newLoad = TextVButton.Builder.of(0.33f, 0.34f, 0.0625f, 0.05f, this)
                 .setOnPress(button -> {
                     if(dropDownList.getSelectedEntry() != null) {
@@ -100,7 +98,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                         Component text = selectedEntry.text;
                         File file = ClientSchematicData.INSTANCE.getSchematicFile(text.getString());
                         Survivalmatic.LOGGER.info("Loading schematic {}", file.getName());
-
                         SchematicReader.getStreamableInstanceAsync(file).thenAccept(optional -> {
                             optional.ifPresent(streamable -> {
                                 ClientSchematicData.INSTANCE.setSchematicInstance(streamable);
@@ -114,7 +111,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Load"))
                 .build();
-
+        // Todo: Finish Waiting Logic
         TextVButton newUploadButton = TextVButton.Builder.of(0.3925f, 0.34f, 0.0625f, 0.05f, this)
                 .setOnPress(button -> {
                     if(ClientSchematicData.INSTANCE.getSchematicInstance() == null) {
@@ -270,11 +267,16 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         int dataTracker = SchemBuilderInterfaceData.getINSTANCE().getTracker();
         if(tracker != dataTracker) {
             tracker = dataTracker;
-            Map<Item, Integer> materialBuffer =  SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferItems();
+            Map<ItemStack, Integer> materialBuffer =  SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferItems();
+            itemList.resetEntries();
             materialBuffer.forEach((item, amt) -> {
-
+                itemList.addCustomEntry(((customEntry, renderWrapper) -> {
+                    GuiGraphics guiGraphics = renderWrapper.guiGraphics();
+                    guiGraphics.renderItem(item, customEntry.getX(), customEntry.getY());
+                }));
+//                itemList.addTextEntry(Component.literal("Item"));
             });
-            Map<Item, Integer> dumpBuffer =  SchemBuilderInterfaceData.getINSTANCE().getDumpBufferItems();
+//            Map<ItemStack, Integer> dumpBuffer =  SchemBuilderInterfaceData.getINSTANCE().getDumpBufferItems();
         }
         int stateAsInt = this.getMenu().data.get(0);
         SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
