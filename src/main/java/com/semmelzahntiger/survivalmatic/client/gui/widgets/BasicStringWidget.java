@@ -9,10 +9,10 @@ public class BasicStringWidget extends AbstractStringWidget<BasicStringWidget> {
     }
     public static class Builder extends AbstractStringWidget.Builder<BasicStringWidget, Builder> {
 
-        protected Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        protected Builder(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
-        public static Builder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public static Builder of(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             return new Builder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
 

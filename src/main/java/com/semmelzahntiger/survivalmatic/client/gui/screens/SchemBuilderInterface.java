@@ -77,11 +77,10 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     }
     protected void initSchematicWidgets() {
         ScrollableDropDownList dropDownList = ScrollableDropDownList.Builder.of(
-                        0.33f,0.14f, 0.125f, 0.04f, 4, Component.empty(), this)
+                        0.33f,0.14f, 200, 100, 4, Component.empty(), this)
                 .setEntryWidthRatio(0.9f)
                 .setEntryHeightRatio(0.9f)
-                .setListOffset(0.01f)
-                .setSelectedMargin(0.005f, 0.005f, 0.003f, 0.003f)
+                .setListOffset(10)
                 .build();
         ClientSchematicData.INSTANCE.reloadSchematics();
         for (String availableSchematicName : ClientSchematicData.INSTANCE.getAvailableSchematicNames()) {

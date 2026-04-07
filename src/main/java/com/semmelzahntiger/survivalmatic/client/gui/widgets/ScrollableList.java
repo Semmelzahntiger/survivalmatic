@@ -40,16 +40,16 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
 
 
     private ScrollableList(Builder builder) {
-        super(builder.xRelative, builder.yRelative, builder.widthRelative, builder.heightRelative, builder.screen, builder.message);
+        super(builder);
         defaultEntryTexture = builder.defaultEntryTexture;
         background = builder.backgroundTexture;
         border = builder.listBorderTexture;
-        borderLeftMargin = relativeToAbsoluteX(builder.borderLeftMargin);
-        borderTopMargin = relativeToAbsoluteY(builder.borderTopMargin);
-        borderRightMargin = relativeToAbsoluteX(builder.borderRightMargin) + borderLeftMargin;
-        borderBottomMargin = relativeToAbsoluteY(builder.borderBottomMargin) + borderTopMargin;
+        borderLeftMargin = builder.borderLeftMargin;
+        borderTopMargin = builder.borderTopMargin;
+        borderRightMargin = builder.borderRightMargin + borderLeftMargin;
+        borderBottomMargin = builder.borderBottomMargin + borderTopMargin;
         sliderTexture = builder.sliderTexture;
-        sliderMargin = relativeToAbsoluteX(builder.sliderMargin);
+        sliderMargin = builder.sliderMargin;
         visibleEntries = builder.visibleEntries;
 
         entryHeight = this.getHeight();
@@ -149,60 +149,61 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
         return false;
     }
 
-    public static class Builder {
-        protected final float xRelative;
-        protected final float yRelative;
-        protected final float widthRelative;
-        protected final float heightRelative;
-        protected final Screen screen;
-        protected final Component message;
-        protected final int visibleEntries;
-        protected ResourceLocation defaultEntryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
-        protected ResourceLocation backgroundTexture =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
-        protected ResourceLocation listBorderTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
-        protected float borderLeftMargin = 0;
-        protected float borderTopMargin = 0;
-        protected float borderRightMargin = 0;
-        protected float borderBottomMargin = 0;
-        protected ResourceLocation sliderTexture;
-        protected float sliderMargin = 0;
+    public static class Builder extends AbstractVWidget.WidgetBuilder<ScrollableList, Builder> {
+        public final Component message;
+        public final int visibleEntries;
+        public ResourceLocation defaultEntryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
+        public int entryTextureWidth = 256;
+        public int entryTextureHeight = 256;
+        public ResourceLocation backgroundTexture =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
+        public int backgroundTextureWidth = 256;
+        public int backgroundTextureHeight = 256;
+        public ResourceLocation listBorderTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
+        public int listBorderTextureWidth = 256;
+        public int listBorderTextureHeight = 256;
+        public int borderLeftMargin = 0;
+        public int borderTopMargin = 0;
+        public int borderRightMargin = 0;
+        public int borderBottomMargin = 0;
+        public ResourceLocation sliderTexture;
+        public int sliderTextureWidth = 256;
+        public int sliderTextureHeight = 256;
+        public int sliderMargin = 0;
 
-        private Builder(float x, float y, float width, float height,int visibleEntries, Screen screen, Component message) {
-            this.xRelative = x;
-            this.yRelative = y;
-            this.widthRelative = width;
-            this.heightRelative = height;
+        private Builder(float x, float y, int width, int height,int visibleEntries, Screen screen, Component message) {
+            super(x,y,width,height, screen);
             this.visibleEntries = visibleEntries;
-            this.screen = screen;
             this.message = message;
         }
-        public static Builder of(float x, float y, float width, float height,int visibleEntries, Screen screen, Component message) {
+        public static Builder of(float x, float y, int width, int height,int visibleEntries, Screen screen, Component message) {
             return new Builder(x,y,width,height, visibleEntries, screen, message);
         }
-        public Builder setBackgroundTexture(ResourceLocation texture) {
-            this.backgroundTexture = texture;
+        public Builder setDefaultEntryTexture(ResourceLocation defaultEntryTexture, int width, int height) {
+            this.defaultEntryTexture = defaultEntryTexture;
+            this.entryTextureWidth = width;
+            this.entryTextureHeight = height;
             return this;
         }
-        public Builder setBorderMargins(float left, float right, float top, float bottom) {
-            this.borderLeftMargin = left;
-            this.borderTopMargin = top;
-            this.borderRightMargin = right;
-            this.borderBottomMargin = bottom;
+        public Builder setBackgroundTexture(ResourceLocation backgroundTexture, int width, int height) {
+            this.backgroundTexture = backgroundTexture;
+            this.backgroundTextureWidth = width;
+            this.backgroundTextureHeight = height;
             return this;
         }
-        public Builder setEntryTexture(ResourceLocation texture) {
-            this.sliderTexture = texture;
+        public Builder setListBorderTexture(ResourceLocation listBorderTexture, int width, int height, int leftMargin, int topMargin, int rightMargin, int bottomMargin) {
+            this.listBorderTexture = listBorderTexture;
+            this.listBorderTextureWidth = width;
+            this.listBorderTextureHeight = height;
+            this.borderLeftMargin = leftMargin;
+            this.borderTopMargin = topMargin;
+            this.borderRightMargin = rightMargin;
+            this.borderBottomMargin = bottomMargin;
             return this;
         }
-        public Builder setDefaultEntryTexture(ResourceLocation texture) {
-            this.defaultEntryTexture = texture;
-            return this;
-        }
-        public Builder setSliderTexture(ResourceLocation texture) {
-            this.sliderTexture = texture;
-            return this;
-        }
-        public Builder setSliderMargin(float margin) {
+        public Builder setSliderTexture(ResourceLocation sliderTexture, int width, int height, int margin) {
+            this.sliderTexture = sliderTexture;
+            this.sliderTextureWidth = width;
+            this.sliderTextureHeight = height;
             this.sliderMargin = margin;
             return this;
         }

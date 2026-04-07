@@ -25,7 +25,7 @@ public abstract class BaseTextVButton<W extends BaseTextVButton<W>> extends Abst
 
     public abstract static class Builder<W extends BaseTextVButton<W>, T extends Builder<W,T>> extends AbstractVButton.Builder<W, T> {
         protected Component text = Component.empty();
-        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
         public T setText(Component text) {

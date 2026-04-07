@@ -17,7 +17,7 @@ public class AbstractStringWidget<W extends AbstractStringWidget<W>> extends Abs
     public final boolean isCentered;
     public int color;
     public <T extends Builder<W,T>> AbstractStringWidget(Builder<W,T> builder) {
-        super(builder.xRelative, builder.yRelative, builder.widthRelative, builder.heightRelative, builder.parentScreen, builder.pMessage);
+        super(builder);
         text = builder.text;
         rawText = builder.rawText;
         isCentered = builder.isCentered;
@@ -56,7 +56,7 @@ public class AbstractStringWidget<W extends AbstractStringWidget<W>> extends Abs
         public boolean isCentered = false;
         public int color = 0xFFFFFF;
 
-        protected Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        protected Builder(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
         public T text(Component text) {

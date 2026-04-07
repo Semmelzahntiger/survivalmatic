@@ -13,10 +13,10 @@ public class GenericVButton extends AbstractVButton<GenericVButton> {
 
     public static class Builder extends AbstractVButton.Builder<GenericVButton, Builder> {
 
-        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
-        public static Builder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public static Builder of(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             return new Builder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
 

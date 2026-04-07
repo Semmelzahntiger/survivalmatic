@@ -12,10 +12,10 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
     protected final ResourceLocation textureDisabled;
     protected final ResourceLocation hoverTextureEnabled;
     protected final ResourceLocation hoverTextureDisabled;
-    protected float hoverLeftMargin;
-    protected float hoverTopMargin;
-    protected float hoverRightMargin;
-    protected float hoverBottomMargin;
+    protected int hoverLeftMargin;
+    protected int hoverTopMargin;
+    protected int hoverRightMargin;
+    protected int hoverBottomMargin;
 
     protected final VOnPress<W> onPress;
     public <T extends Builder<W,T>> AbstractVButton(Builder<W,T> builder) {
@@ -23,12 +23,12 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         this.onPress = builder.onPress;
         texture = builder.buttonTextureEnabled;
         textureDisabled = builder.buttonTextureDisabled;
-        hoverTextureEnabled = builder.buttonHoverTexture;
-        hoverTextureDisabled = builder.buttonHoverTextureDisabled;
-        hoverLeftMargin  = builder.hoverLeftMargin;
-        hoverTopMargin  = builder.hoverTopMargin;
-        hoverRightMargin  = builder.hoverRightMargin;
-        hoverBottomMargin  = builder.hoverBottomMargin;
+        hoverTextureEnabled = builder.buttonTextureHoverEnabled;
+        hoverTextureDisabled = builder.buttonTextureHoverDisabled;
+        hoverLeftMargin  = builder.hoverTextureLeftMargin;
+        hoverTopMargin  = builder.hoverTextureTopMargin;
+        hoverRightMargin  = builder.hoverTextureRightMargin;
+        hoverBottomMargin  = builder.hoverTextureBottomMargin;
     }
 
     @Override
@@ -77,44 +77,61 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
     }
 
     public abstract static class Builder<W extends AbstractVButton<W>,T extends Builder<W,T>> extends AbstractVWidget.WidgetBuilder<W, T> {
-        protected ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
-        protected ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
-        protected ResourceLocation buttonHoverTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
-        protected ResourceLocation buttonHoverTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
-        protected float hoverLeftMargin = 0;
-        protected float hoverRightMargin = 0;
-        protected float hoverTopMargin = 0;
-        protected float hoverBottomMargin = 0;
+        public ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full");
+        public int buttonTextureWidth = 256;
+        public int buttonTextureHeight = 256;
+        public ResourceLocation buttonTextureDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full.png");
+        public int buttonTextureWidthDisabled = 256;
+        public int buttonTextureHeightDisabled = 256;
+        public ResourceLocation buttonTextureHoverEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
+        public int buttonTextureWidthHover = 256;
+        public int buttonTextureHeightHover = 256;
+        public ResourceLocation buttonTextureHoverDisabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.pint");
+        public int buttonTextureWidthHoverDisabled = 256;
+        public int buttonTextureHeightHoverDisabled = 256;
+
+        public int hoverTextureLeftMargin = 0;
+        public int hoverTextureRightMargin = 0;
+        public int hoverTextureTopMargin = 0;
+        public int hoverTextureBottomMargin = 0;
 
         protected VOnPress<W> onPress = button -> {};
-        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
-            super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
+        public Builder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
+            super(xRelative, yRelative, width, height, parentScreen);
         }
         public T setOnPress(VOnPress<W> onPress) {
             this.onPress = onPress;
             return self();
         }
-        public T setEnabledTexture(ResourceLocation textureEnabled) {
+        public T setEnabledTexture(ResourceLocation textureEnabled, int textureWidth, int textureHeight) {
             this.buttonTextureEnabled = textureEnabled;
+            this.buttonTextureWidth = textureWidth;
+            this.buttonTextureHeight = textureHeight;
             return self();
         }
-        public T setDisabledTexture(ResourceLocation textureDisabled) {
+        public T setDisabledTexture(ResourceLocation textureDisabled, int textureWidth, int textureHeight) {
             this.buttonTextureDisabled = textureDisabled;
+            this.buttonTextureWidthDisabled = textureWidth;
+            this.buttonTextureHeightDisabled = textureHeight;
             return self();
         }
-        public T setHoverTextureEnabled(ResourceLocation texture) {
-            this.buttonHoverTexture = texture;
+        public T setHoverTextureEnabled(ResourceLocation texture, int textureWidth, int textureHeight) {
+            this.buttonTextureHoverEnabled = texture;
+            this.buttonTextureWidthHover = textureWidth;
+            this.buttonTextureHeightHover = textureHeight;
             return self();
         }
-        public T setHoverTextureDisabled(ResourceLocation textureDisabled) {
-            this.buttonHoverTextureDisabled = textureDisabled;
+        public T setHoverTextureDisabled(ResourceLocation textureDisabled, int textureWidth, int textureHeight) {
+            this.buttonTextureHoverDisabled = textureDisabled;
+            this.buttonTextureWidthHoverDisabled = textureWidth;
+            this.buttonTextureHeightHoverDisabled = textureHeight;
             return self();
         }
-        public T setHoverMargins(float leftMargin, float topMargin, float rightMargin, float bottomMargin) {
-            this.hoverLeftMargin = leftMargin;
-            this.hoverRightMargin = rightMargin;
-            this.hoverTopMargin = topMargin;
-            this.hoverBottomMargin = bottomMargin;
+        public T setHoverMargins(int leftMargin, int topMargin, int rightMargin, int bottomMargin) {
+            this.hoverTextureLeftMargin = leftMargin;
+            this.hoverTextureRightMargin = rightMargin;
+            this.hoverTextureTopMargin = topMargin;
+            this.hoverTextureBottomMargin = bottomMargin;
             return self();
         }
         @Override

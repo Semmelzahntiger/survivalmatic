@@ -13,9 +13,9 @@ public class TextVButton extends BaseTextVButton<TextVButton> {
 
     @Override
     public void renderHoveredEnabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        guiGraphics.blit(this.hoverTextureEnabled, this.getX() - relativeToAbsoluteX(this.hoverLeftMargin), this.getY() - relativeToAbsoluteY(this.hoverTopMargin),
-                this.getWidth() + relativeToAbsoluteX(this.hoverLeftMargin + this.hoverRightMargin),
-                this.getHeight() + relativeToAbsoluteY(hoverTopMargin + hoverBottomMargin),
+        guiGraphics.blit(this.hoverTextureEnabled, this.getX() - this.hoverLeftMargin, this.getY() - this.hoverTopMargin,
+                this.getWidth() + this.hoverLeftMargin + this.hoverRightMargin,
+                this.getHeight() + hoverTopMargin + hoverBottomMargin,
                 0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
     }
 
@@ -26,15 +26,15 @@ public class TextVButton extends BaseTextVButton<TextVButton> {
 
     public static class Builder extends BaseTextVButton.Builder<TextVButton, Builder> {
 
-        public Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public Builder(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
-        public static Builder of(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public static Builder of(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
             return new Builder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
         }
         @Override
         public TextVButton build() {
-            Survivalmatic.LOGGER.info("x: {}, y: {}, width: {}, height: {}, parentScreenWidth: {} parentScreenHeight: {}", this.xRelative, this.yRelative, this.widthRelative, this.heightRelative, this.parentScreen.width, this.parentScreen.height);
+            Survivalmatic.LOGGER.info("x: {}, y: {}, width: {}, height: {}, parentScreenWidth: {} parentScreenHeight: {}", this.xRelative, this.yRelative, this.width, this.height, this.parentScreen.width, this.parentScreen.height);
             return new TextVButton(this);
         }
     }

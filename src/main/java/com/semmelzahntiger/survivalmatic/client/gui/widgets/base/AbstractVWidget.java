@@ -9,18 +9,10 @@ public abstract class AbstractVWidget extends AbstractWidget {
     protected final Screen parentScreen;
     protected float xRelative;
     protected float yRelative;
-    protected float widthRelative;
-    protected float heightRelative;
-    public AbstractVWidget(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen screen, Component pMessage) {
-        super((int) (screen.width * xRelative), (int) (screen.height * yRelative), (int) (screen.width * widthRelative), (int) (screen.height * heightRelative), pMessage);
-        this.parentScreen = screen;
-        this.xRelative = xRelative;
-        this.yRelative = yRelative;
-        this.widthRelative = widthRelative;
-        this.heightRelative = heightRelative;
-    }
+
     public <W extends AbstractVWidget,T extends WidgetBuilder<W,T>> AbstractVWidget(WidgetBuilder<W,T> builder) {
-       this(builder.xRelative, builder.yRelative, builder.widthRelative, builder.heightRelative, builder.parentScreen, builder.pMessage);
+        super((int) (builder.parentScreen.width * builder.xRelative), (int) (builder.parentScreen.height * builder.yRelative), builder.width, builder.height, builder.pMessage);
+        this.parentScreen = builder.parentScreen;
     }
     public int getXBound() {
         return getX() + getWidth();
@@ -33,28 +25,14 @@ public abstract class AbstractVWidget extends AbstractWidget {
     }
     public void setXRelative(float xRelative) {
         this.xRelative = xRelative;
-        setX(relativeToAbsoluteX(xRelative));
-    }
-    public void setWidthRelative(float widthRelative) {
-        this.widthRelative = widthRelative;
-        setWidth(relativeToAbsoluteX(widthRelative));
-    }
-    protected final int relativeToAbsoluteX(float x) {
-        return (int) (x * parentScreen.width);
+        setX((int) (xRelative * parentScreen.width));
     }
     public float getYRelative() {
         return yRelative;
     }
     public void setYRelative(float yRelative) {
         this.yRelative = yRelative;
-        setY(relativeToAbsoluteY(yRelative));
-    }
-    public void setHeightRelative(float heightRelative) {
-        this.heightRelative = heightRelative;
-        setHeight(relativeToAbsoluteY(heightRelative));
-    }
-    protected final int relativeToAbsoluteY(float y) {
-        return (int) (y * parentScreen.height);
+        setY((int) (yRelative * parentScreen.height));
     }
     public int getCenterX() {
         return getX() + getWidth() / 2;
@@ -82,18 +60,18 @@ public abstract class AbstractVWidget extends AbstractWidget {
 
     }
     public abstract static class WidgetBuilder<W extends AbstractVWidget,T extends WidgetBuilder<W,T>> {
-        protected final float xRelative;
-        protected final float yRelative;
-        protected final float widthRelative;
-        protected final float heightRelative;
-        protected final Screen parentScreen;
-        protected Component pMessage;
+        public final float xRelative;
+        public final float yRelative;
+        public final int width;
+        public final int height;
+        public final Screen parentScreen;
+        public Component pMessage;
 
-        public WidgetBuilder(float xRelative, float yRelative, float widthRelative, float heightRelative, Screen parentScreen) {
+        public WidgetBuilder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
             this.xRelative = xRelative;
             this.yRelative = yRelative;
-            this.widthRelative = widthRelative;
-            this.heightRelative = heightRelative;
+            this.width = width;
+            this.height = height;
             this.parentScreen = parentScreen;
         }
         public T setMessage(Component pMessage) {

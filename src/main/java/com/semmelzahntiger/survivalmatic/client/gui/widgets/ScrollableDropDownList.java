@@ -15,26 +15,38 @@ import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class ScrollableDropDownList extends AbstractVWidget implements IScrollableList {
     public final ResourceLocation DEFAULT_ENTRY_TEXTURE;
+    public final int entryTextureWidth;
+    public final int entryTextureHeight;
     public final ResourceLocation BACKGROUND;
+    public final int backgroundTextureWidth;
+    public final int backgroundTextureHeight;
     public final ResourceLocation HOVERED;
+    public final int hoveredEntryTextureWidth;
+    public final int hoveredEntryTextureHeight;
     public final int hoverLeftMargin;
     public final int hoverTopMargin;
     public final int hoverRightMargin;
     public final int hoverBottomMargin;
 
     public final ResourceLocation ACTIVE_BORDER;
+    public final int selectedEntryTextureWidth;
+    public final int selectedEntryTextureHeight;
     public final int selectedBorderLeftMargin;
     public final int selectedBorderTopMargin;
     public final int selectedBorderRightMargin;
     public final int selectedBorderBottomMargin;
 
     public final ResourceLocation LIST_BORDER;
+    public final int listBorderTextureWidth;
+    public final int listBorderTextureHeight;
     public final int listBorderLeftMargin;
     public final int listBorderTopMargin;
     public final int listBorderRightMargin;
     public final int listBorderBottomMargin;
 
     public final ResourceLocation SLIDER;
+    public final int sliderTextureWidth;
+    public final int sliderTextureHeight;
     public final int sliderRightMargin;
 
     public final int visibleEntries;
@@ -67,39 +79,51 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
     IScrollableList.ListEntry<?> selectedEntry = null;
 
     protected ScrollableDropDownList(Builder builder) {
-        super(builder.x, builder.y, builder.width, builder.height, builder.screen, builder.message);
+        super(builder);
         // Textures
         this.DEFAULT_ENTRY_TEXTURE = builder.entryTexture;
-        this.BACKGROUND = builder.background;
-        this.HOVERED = builder.hovered;
-        this.ACTIVE_BORDER = builder.selectedBorder;
-        this.LIST_BORDER = builder.listBorder;
-        this.SLIDER = builder.slider;
+        this.entryTextureWidth = builder.entryTextureWidth;
+        this.entryTextureHeight = builder.entryTextureHeight;
+        this.BACKGROUND = builder.backgroundTexture;
+        this.backgroundTextureWidth = builder.backgroundTextureWidth;
+        this.backgroundTextureHeight = builder.backgroundTextureHeight;
+        this.HOVERED = builder.hoveredEntryTexture;
+        this.hoveredEntryTextureWidth = builder.hoveredEntryTextureWidth;
+        this.hoveredEntryTextureHeight = builder.hoveredEntryTextureHeight;
+        this.ACTIVE_BORDER = builder.selectedEntryBorderTexture;
+        this.selectedEntryTextureWidth = builder.selectedEntryBorderTextureWidth;
+        this.selectedEntryTextureHeight = builder.selectedEntryBorderTextureHeight;
+        this.LIST_BORDER = builder.listBorderTexture;
+        this.listBorderTextureWidth = builder.listBorderTextureWidth;
+        this.listBorderTextureHeight = builder.listBorderTextureHeight;
+        this.SLIDER = builder.sliderTexture;
+        this.sliderTextureWidth = builder.sliderTextureWidth;
+        this.sliderTextureHeight = builder.sliderTextureHeight;
         // Texture Margins
-        this.hoverLeftMargin = relativeToAbsoluteX(builder.hoveredLeftMargin);
-        this.hoverTopMargin = relativeToAbsoluteY(builder.hoveredTopMargin);
-        this.hoverRightMargin = relativeToAbsoluteX(builder.hoveredRightMargin) + this.hoverLeftMargin;
-        this.hoverBottomMargin = relativeToAbsoluteY(builder.hoveredBottomMargin) + this.hoverTopMargin;
+        this.hoverLeftMargin = builder.hoveredEntryTextureLeftMargin;
+        this.hoverTopMargin = builder.hoveredEntryTextureTopMargin;
+        this.hoverRightMargin = builder.hoveredEntryTextureRightMargin + this.hoverLeftMargin;
+        this.hoverBottomMargin = builder.hoveredEntryTextureBottomMargin + this.hoverTopMargin;
 
-        this.selectedBorderLeftMargin = relativeToAbsoluteX(builder.selectedLeftMargin);
-        this.selectedBorderTopMargin = relativeToAbsoluteY(builder.selectedTopMargin);
-        this.selectedBorderRightMargin = relativeToAbsoluteX(builder.selectedRightMargin) + this.selectedBorderLeftMargin;
-        this.selectedBorderBottomMargin = relativeToAbsoluteY(builder.selectedBottomMargin) + this.selectedBorderTopMargin;
+        this.selectedBorderLeftMargin = builder.selectedEntryTextureLeftMargin;
+        this.selectedBorderTopMargin = builder.selectedEntryTextureTopMargin;
+        this.selectedBorderRightMargin = builder.selectedEntryTextureRightMargin + this.selectedBorderLeftMargin;
+        this.selectedBorderBottomMargin = builder.selectedEntryTextureBottomMargin + this.selectedBorderTopMargin;
 
-        this.listBorderLeftMargin = relativeToAbsoluteX(builder.listLeftMargin);
-        this.listBorderTopMargin = relativeToAbsoluteY(builder.listTopMargin);
-        this.listBorderRightMargin = relativeToAbsoluteX(builder.listRightMargin) + this.listBorderLeftMargin;
-        this.listBorderBottomMargin = relativeToAbsoluteY(builder.listBottomMargin) + this.listBorderTopMargin;
+        this.listBorderLeftMargin = builder.listBorderTextureLeftMargin;
+        this.listBorderTopMargin = builder.listBorderTextureTopMargin;
+        this.listBorderRightMargin = builder.listBorderTextureRightMargin + this.listBorderLeftMargin;
+        this.listBorderBottomMargin = builder.listBorderTextureBottomMargin + this.listBorderTopMargin;
 
-        this.sliderRightMargin = relativeToAbsoluteX(builder.sliderMargin);
+        this.sliderRightMargin = builder.sliderTextureMargin;
         // Fixed Data
         this.visibleEntries = builder.visibleEntries;
         this.entryWidthRatio = builder.listEntryWidthRatio;
         this.entryHeightRatio = builder.listEntryHeightRatio;
 
-        this.listOffset = relativeToAbsoluteY(builder.listOffset);
+        this.listOffset = builder.listOffset;
         // Dynamically changed data
-        this.closedHeight = relativeToAbsoluteY(builder.height);
+        this.closedHeight = builder.height;
 
         listStart = this.getY() + this.getHeight() + listOffset;
         this.entryWidth = (int) (this.getWidth() * this.entryWidthRatio);
@@ -109,7 +133,7 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         this.entryOffsettedX = this.getX() + this.entryCenteringOffsetX;
 
         this.listHeight = visibleEntries * entryHeight;
-        this.openedHeight = relativeToAbsoluteY(builder.height+ builder.listOffset) + this.listHeight;
+        this.openedHeight = builder.height+ builder.listOffset + this.listHeight;
     }
 
     @Override
@@ -156,7 +180,7 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
         this.entryOffsettedX = this.getX() + this.entryCenteringOffsetX;
 
         this.listHeight = visibleEntries * entryHeight;
-        this.openedHeight = relativeToAbsoluteY(this.getHeight() + this.listOffset) + this.listHeight;
+        this.openedHeight = this.getHeight() + this.listOffset + this.listHeight;
         updateEntries();
     }
     protected void open() {
@@ -313,50 +337,53 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
     public void setHeightWithoutUpdatingList(int value) {
         super.setHeight(value);
     }
-    public static class Builder {
-        public final Screen screen;
-        public final float x;
-        public final float y;
-        public final float width;
-        public final float height;
+    public static class Builder extends AbstractVWidget.WidgetBuilder<ScrollableDropDownList, Builder> {
         public float listEntryWidthRatio = 1.0f;
         public float listEntryHeightRatio = 1.0f;
         public final int visibleEntries;
-        public float listOffset;
+        public int listOffset;
         public final Component message;
         public ResourceLocation entryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
-        public ResourceLocation background =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
-        public ResourceLocation hovered = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hover_border.png");
-        public float hoveredLeftMargin = 0;
-        public float hoveredRightMargin = 0;
-        public float hoveredTopMargin = 0;
-        public float hoveredBottomMargin = 0;
-        public ResourceLocation selectedBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
-        public float selectedLeftMargin = 0;
-        public float selectedRightMargin = 0;
-        public float selectedTopMargin = 0;
-        public float selectedBottomMargin = 0;
-        public ResourceLocation listBorder = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
-        public float listLeftMargin = 0;
-        public float listRightMargin = 0;
-        public float listTopMargin = 0;
-        public float listBottomMargin = 0;
-        public ResourceLocation slider = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/slider.png");
-        public float sliderMargin = 0;
+        public int entryTextureWidth = 256;
+        public int entryTextureHeight = 256;
+        public ResourceLocation backgroundTexture =  ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_rectangle.png");
+        public int backgroundTextureWidth = 256;
+        public int backgroundTextureHeight = 256;
+        public ResourceLocation hoveredEntryTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hover_border.png");
+        public int hoveredEntryTextureWidth = 256;
+        public int hoveredEntryTextureHeight = 256;
+        public int hoveredEntryTextureLeftMargin = 0;
+        public int hoveredEntryTextureRightMargin = 0;
+        public int hoveredEntryTextureTopMargin = 0;
+        public int hoveredEntryTextureBottomMargin = 0;
+        public ResourceLocation selectedEntryBorderTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
+        public int selectedEntryBorderTextureWidth = 256;
+        public int selectedEntryBorderTextureHeight = 256;
+        public int selectedEntryTextureLeftMargin = 0;
+        public int selectedEntryTextureRightMargin = 0;
+        public int selectedEntryTextureTopMargin = 0;
+        public int selectedEntryTextureBottomMargin = 0;
+        public ResourceLocation listBorderTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_hollow.png");
+        public int listBorderTextureWidth = 256;
+        public int listBorderTextureHeight = 256;
+        public int listBorderTextureLeftMargin = 0;
+        public int listBorderTextureRightMargin = 0;
+        public int listBorderTextureTopMargin = 0;
+        public int listBorderTextureBottomMargin = 0;
+        public ResourceLocation sliderTexture = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/slider.png");
+        public int sliderTextureWidth = 256;
+        public int sliderTextureHeight = 256;
+        public int sliderTextureMargin = 0;
 
-        protected Builder(float xRelative, float yRelative, float widthRelative, float heightRelative, int pVisibleEntries, Component pMessage, Screen screen) {
-            x = xRelative;
-            y = yRelative;
-            width = widthRelative;
-            height = heightRelative;
+        protected Builder(float xRelative, float yRelative, int width, int height, int pVisibleEntries, Component pMessage, Screen screen) {
+            super(xRelative, yRelative, width, height, screen);
             visibleEntries = pVisibleEntries;
             message = pMessage;
-            this.screen = screen;
         }
-        public static Builder of(float x, float y, float width, float height, int visibleEntries, Component message, Screen screen) {
+        public static Builder of(float x, float y, int width, int height, int visibleEntries, Component message, Screen screen) {
             return new Builder(x, y, width, height, visibleEntries, message, screen);
         }
-        public Builder setListOffset(float offset) {
+        public Builder setListOffset(int offset) {
             listOffset = offset;
             return this;
         }
@@ -368,53 +395,53 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
             this.listEntryHeightRatio = heightRatio;
             return this;
         }
-        public Builder setEntryTexture(ResourceLocation pEntryTexture) {
+        public Builder setEntryTexture(ResourceLocation pEntryTexture, int width, int height) {
             this.entryTexture = pEntryTexture;
+            this.entryTextureWidth = width;
+            this.entryTextureHeight = height;
             return this;
         }
-        public Builder setBackground(ResourceLocation pBackground) {
-            this.background = pBackground;
+        public Builder setBackgroundTexture(ResourceLocation pBackground, int width, int height) {
+            this.backgroundTexture = pBackground;
+            this.backgroundTextureWidth = width;
+            this.backgroundTextureHeight = height;
             return this;
         }
-        public Builder setHovered(ResourceLocation pHovered, int leftMargin, int rightMargin, int topMargin, int bottomMargin) {
-            this.hovered = pHovered;
+        public Builder setHoveredEntryTexture(ResourceLocation pHovered, int width, int height, int leftMargin, int rightMargin, int topMargin, int bottomMargin) {
+            this.hoveredEntryTexture = pHovered;
+            this.hoveredEntryTextureWidth = width;
+            this.hoveredEntryTextureHeight = height;
+            this.hoveredEntryTextureLeftMargin = leftMargin;
+            this.hoveredEntryTextureRightMargin = rightMargin;
+            this.hoveredEntryTextureTopMargin = topMargin;
+            this.hoveredEntryTextureBottomMargin = bottomMargin;
             return this;
         }
-        public Builder setSelectedBorder(ResourceLocation pActiveBorder, int leftMargin, int rightMargin, int topMargin, int bottomMargin) {
-            this.selectedBorder = pActiveBorder;
+        public Builder setSelectedEntryBorderTexture(ResourceLocation pActiveBorder, int width, int height, int leftMargin, int rightMargin, int topMargin, int bottomMargin) {
+            this.selectedEntryBorderTexture = pActiveBorder;
+            this.selectedEntryBorderTextureWidth = width;
+            this.selectedEntryBorderTextureHeight = height;
+            this.selectedEntryTextureLeftMargin = leftMargin;
+            this.selectedEntryTextureRightMargin = rightMargin;
+            this.selectedEntryTextureTopMargin = topMargin;
+            this.selectedEntryTextureBottomMargin = bottomMargin;
             return this;
         }
-        public Builder setListBorder(ResourceLocation pListBorder) {
-            this.listBorder = pListBorder;
+        public Builder setListBorderTexture(ResourceLocation pListBorder, int width, int height, int leftMargin, int rightMargin, int topMargin, int bottomMargin) {
+            this.listBorderTexture = pListBorder;
+            this.listBorderTextureWidth = width;
+            this.listBorderTextureHeight = height;
+            this.listBorderTextureLeftMargin = leftMargin;
+            this.listBorderTextureRightMargin = rightMargin;
+            this.listBorderTextureTopMargin = topMargin;
+            this.listBorderTextureBottomMargin = bottomMargin;
             return this;
         }
-        public Builder setSlider(ResourceLocation pSlider) {
-            this.slider = pSlider;
-            return this;
-        }
-        public Builder setSliderMargin(float margin) {
-            this.sliderMargin = margin;
-            return this;
-        }
-        public Builder setHoveredMargins(float leftMargin, float rightMargin, float topMargin, float bottomMargin) {
-            this.hoveredLeftMargin = leftMargin;
-            this.hoveredRightMargin = rightMargin;
-            this.hoveredTopMargin = topMargin;
-            this.hoveredBottomMargin = bottomMargin;
-            return this;
-        }
-        public Builder setSelectedMargin(float leftMargin, float rightMargin, float topMargin, float bottomMargin) {
-            this.selectedLeftMargin = leftMargin;
-            this.selectedRightMargin = rightMargin;
-            this.selectedTopMargin = topMargin;
-            this.selectedBottomMargin = bottomMargin;
-            return this;
-        }
-        public Builder setListBorderMargins(float leftMargin, float rightMargin, float topMargin, float bottomMargin) {
-            this.listLeftMargin = leftMargin;
-            this.listRightMargin = rightMargin;
-            this.listTopMargin = topMargin;
-            this.listBottomMargin = bottomMargin;
+        public Builder setSliderTexture(ResourceLocation pSlider, int width, int height, int rightMargin) {
+            this.sliderTexture = pSlider;
+            this.sliderTextureWidth = width;
+            this.sliderTextureHeight = height;
+            this.sliderTextureMargin = rightMargin;
             return this;
         }
         public ScrollableDropDownList build() {
