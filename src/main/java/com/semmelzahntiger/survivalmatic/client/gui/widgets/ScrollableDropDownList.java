@@ -380,7 +380,15 @@ public class ScrollableDropDownList extends AbstractVWidget implements IScrollab
             visibleEntries = pVisibleEntries;
             message = pMessage;
         }
+        protected Builder(int x, int y, int width, int height, int pVisibleEntries, Component pMessage, Screen screen) {
+            super(x, y, width, height, screen);
+            visibleEntries = pVisibleEntries;
+            message = pMessage;
+        }
         public static Builder of(float x, float y, int width, int height, int visibleEntries, Component message, Screen screen) {
+            return new Builder(x, y, width, height, visibleEntries, message, screen);
+        }
+        public static Builder of(int x, int y, int width, int height, int visibleEntries, Component message, Screen screen) {
             return new Builder(x, y, width, height, visibleEntries, message, screen);
         }
         public Builder setListOffset(int offset) {

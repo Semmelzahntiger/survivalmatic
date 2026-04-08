@@ -159,14 +159,19 @@ public interface IScrollableList {
         @Override
         public void renderInternal(GuiGraphics guiGraphics, int x, int y, int width, int height, int mouseX, int mouseY, float partialTick) {
             super.renderInternal(guiGraphics, x, y, width, height, mouseX, mouseY, partialTick);
+            Font font = Minecraft.getInstance().font;
+            int textHeight = font.lineHeight;
+            int textWidth = font.width(text.getString());
+            float widthScaling = Math.min(1.0f, (float) this.width / textWidth);
+            float heightScaling = Math.min(1.0f, (float) this.height / textHeight);
+            float scaling = Math.min(widthScaling, heightScaling);
+            float positionScaleCorrectionMultiplier = 1.0f / scaling;
             PoseStack pose = guiGraphics.pose();
-            int lineHeight = Minecraft.getInstance().font.lineHeight;
-            float scale = (float) height / 2 / lineHeight;
             pose.pushPose();
-            pose.scale(scale, scale, 1.0f);
+            pose.scale(scaling, scaling, 1.0f);
             guiGraphics.drawCenteredString(Minecraft.getInstance().font, text,
-                    (int) ((x + (float) width / 2) / scale),
-                    (int) ((y + (float) height / 2) / scale),
+                    (int) ((x + (float) width / 2) * positionScaleCorrectionMultiplier),
+                    (int) ((y + (float) height / 2 - ((float) font.lineHeight / 2) * scaling) * positionScaleCorrectionMultiplier),
                     0xFFFFFF);
             pose.popPose();
         }

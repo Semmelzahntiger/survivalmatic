@@ -38,26 +38,22 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         this.data = containerData;
         this.playerInventory = playerInventory;
         this.itemHandler = builderInventory;
-        for (int row = 0; row < 3; ++row) {
-            for (int col = 0; col < 9; ++col) {
+        for(int col = 0; col < 9; col++) {
+            this.addSlot(new Slot(
+                    playerInventory,
+                    col, 89 + col * 18, 149
+            ));
+            for (int row = 0; row < 3; row++) {
                 this.addSlot(new Slot(
                         playerInventory,
-                        col + row * 9 + 9,
-                        8 + col * 18,
-                        8 + row * 18
+                        col + 9 + row * 9,
+                        89 + col * 18,
+                        91 + row * 18
                 ));
             }
         }
-        for (int col = 0; col < 9; ++col) {
-            this.addSlot(new Slot(
-                    playerInventory,
-                    col,
-                    8 + col * 18,
-                    66
-            ));
-        }
-        this.addSlot(new SlotItemHandler(builderInventory,0,-30, -58));
-        this.addSlot(new SlotItemHandler(builderInventory,1,-30, -40));
+        this.addSlot(new SlotItemHandler(builderInventory,0,58, 114));
+        this.addSlot(new SlotItemHandler(builderInventory,1,58, 132));
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {

@@ -28,72 +28,58 @@ import java.util.concurrent.CompletableFuture;
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
 
 public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderMenu> {
-    public static final ResourceLocation INVENTORY = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/inventory_background.png");
-    public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/base_gui.png");
-    public static final ResourceLocation GUI_SIDE = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/gui_medium_tall.png");
-    public static final ResourceLocation IO_SLOTS = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/io.png");
+    public static final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/schem_builder_gui.png");
+    public static final ResourceLocation STANDARD_BG = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/standard_bg.png");
+    public static final ResourceLocation DEFAULT_ENTRY = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_entry.png");
+    public static final ResourceLocation DEFAULT_LIST_BORDER = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/default_border.png");
+    public static final ResourceLocation BUTTON_TEXTURE = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/generic_button.png");
+    public static final ResourceLocation BUTTON_BORDER = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/generic_button_border.png");
+    public static final ResourceLocation SCHEMATIC_BORDER = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/schematic_border.png");
+    public static final ResourceLocation SCHEMATIC_LIST_BORDER = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/schematic_list_border.png");
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
-        this.imageHeight = 90;
+        this.imageWidth = 338;
+        this.imageHeight = 173;
     }
-    public enum InterfaceState {
-        IDLE,
-        SCHEMATIC_SELECTED,
-        LOADING_SCHEMATIC,
-        LOADED_SCHEMATIC,
-        UPLOADING_SCHEMATIC,
-    }
-    public InterfaceState state = InterfaceState.IDLE;
     public int tracker = -1;
-
-    public ScrollableDropDownList schematicList;
-    public ScrollableList itemList;
-
-    public TextVButton loadButton;
-    public TextVButton uploadButton;
-
-    public GenericVButton buildButton;
-    public GenericVButton pauseButton;
-    public GenericVButton resumeButton;
-    public GenericVButton cancelButton;
-    public GenericVButton trashButton;
-    public GenericVButton toggleAirButton;
-    public GenericVButton toggleExcavateButton;
-
-    public BasicStringWidget stateWidget;
-    public BasicStringWidget progressWidget;
-    private BasicStringWidget pauseWidget;
-    private BasicStringWidget excavateWidget;
-    private BasicStringWidget airWidget;
 
     @Override
     protected void init() {
-        // Sorry Mojang but what the actual fuck is this Slot logic with the background
         this.leftPos = (this.width - imageWidth) / 2;
-        this.topPos = (int) ((this.height + imageHeight * 0.3f) / 2);
+        this.topPos = (this.height - imageHeight) / 2;
         initSchematicWidgets();
         initBuilderButtons();
         initTextWidgets();
     }
     protected void initSchematicWidgets() {
-        ScrollableDropDownList dropDownList = ScrollableDropDownList.Builder.of(
-                        0.33f,0.14f, 200, 100, 4, Component.empty(), this)
-                .setEntryWidthRatio(0.9f)
-                .setEntryHeightRatio(0.9f)
-                .setListOffset(10)
+        ScrollableList materialsList = ScrollableList.Builder.of(getGuiLeft()+6, getGuiTop()+11, 48,22, 4, this, Component.empty())
+                .setBackgroundTexture(STANDARD_BG,48,88)
+                .setDefaultEntryTexture(DEFAULT_ENTRY, 48, 22)
+                .setListBorderTexture(DEFAULT_LIST_BORDER, 52, 92,2,2,2,2)
                 .build();
-        ClientSchematicData.INSTANCE.reloadSchematics();
-        for (String availableSchematicName : ClientSchematicData.INSTANCE.getAvailableSchematicNames()) {
-            dropDownList.addTextEntry(Component.literal(availableSchematicName));
+        ScrollableList dumpingList = ScrollableList.Builder.of(getGuiLeft()+imageWidth-53, getGuiTop()+11,48, 22,4, this, Component.empty())
+                .setBackgroundTexture(STANDARD_BG,48,88)
+                .setDefaultEntryTexture(DEFAULT_ENTRY, 48, 22)
+                .setListBorderTexture(DEFAULT_LIST_BORDER, 52, 92,2,2,2,2)
+                .build();
+        // Todo: Add Textures and Margins
+        ScrollableDropDownList schematicsList = ScrollableDropDownList.Builder.of(getGuiLeft()+69, getGuiTop()+5, 62, 12, 3, Component.empty(), this)
+                .setSelectedEntryBorderTexture(SCHEMATIC_BORDER, 66,16,2,2,2,2)
+                .setListBorderTexture(SCHEMATIC_LIST_BORDER, 66, 36,2,2,2,2)
+                .setListOffset(4)
+                .build();
+        ClientSchematicData.getInstance().reloadSchematics();
+        for (String availableSchematicName : ClientSchematicData.getInstance().getAvailableSchematicNames()) {
+            schematicsList.addTextEntry(Component.literal(availableSchematicName));
         }
-        ScrollableList itemList = ScrollableList.Builder.of(0.48f, 0.14f, 0.2f, 0.04f, 4, this,Component.empty())
-                .setBorderMargins(0.005f, 0.005f, 0.003f, 0.003f)
-                .build();
-        System.out.println("Bitch:" + itemList.getX() + " " + itemList.getY() + " " + itemList.getWidth() + " " + itemList.getHeight());
-        TextVButton newLoad = TextVButton.Builder.of(0.33f, 0.34f, 0.0625f, 0.05f, this)
+        TextVButton newLoad = TextVButton.Builder.of(getGuiLeft()+69, getGuiTop()+60, 30,20, this)
+                .setEnabledTexture(BUTTON_TEXTURE, 30,20)
+                .setDisabledTexture(BUTTON_TEXTURE, 30,20)
+                .setHoverTextureEnabled(BUTTON_BORDER, 32, 22)
+                .setHoverMargins(1,1,1,1)
                 .setOnPress(button -> {
-                    if(dropDownList.getSelectedEntry() != null) {
-                        IScrollableList.TextEntry selectedEntry = (IScrollableList.TextEntry) dropDownList.getSelectedEntry();
+                    if(schematicsList.getSelectedEntry() != null) {
+                        IScrollableList.TextEntry selectedEntry = (IScrollableList.TextEntry) schematicsList.getSelectedEntry();
                         Component text = selectedEntry.text;
                         File file = ClientSchematicData.INSTANCE.getSchematicFile(text.getString());
                         Survivalmatic.LOGGER.info("Loading schematic {}", file.getName());
@@ -110,8 +96,12 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Load"))
                 .build();
-        // Todo: Finish Waiting Logic
-        TextVButton newUploadButton = TextVButton.Builder.of(0.3925f, 0.34f, 0.0625f, 0.05f, this)
+////        // Todo: Finish Waiting Logic
+        TextVButton newUploadButton = TextVButton.Builder.of(getGuiLeft()+69+32, getGuiTop()+60, 30,20, this)
+                .setEnabledTexture(BUTTON_TEXTURE, 30,20)
+                .setDisabledTexture(BUTTON_TEXTURE, 30,20)
+                .setHoverTextureEnabled(BUTTON_BORDER, 32, 22)
+                .setHoverMargins(1,1,1,1)
                 .setOnPress(button -> {
                     if(ClientSchematicData.INSTANCE.getSchematicInstance() == null) {
                         Survivalmatic.LOGGER.info("No Schematic Loaded, skip uploading...");
@@ -139,148 +129,37 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.literal("Upload"))
                 .build();
-        addRenderableWidget(dropDownList);
-        addRenderableWidget(itemList);
+        addRenderableWidget(materialsList);
+        addRenderableWidget(dumpingList);
+        addRenderableWidget(schematicsList);
         addRenderableWidget(newLoad);
         addRenderableWidget(newUploadButton);
-        this.schematicList = dropDownList;
-        this.itemList = itemList;
-        this.loadButton = newLoad;
-        this.uploadButton = newUploadButton;
     }
     protected void initBuilderButtons() {
-        float aspectRatio = this.width / (float) this.height;
-        float buttonSize = 0.025f;
-        float buttonY = 0.4f;
-        float buttonStartX = 0.33f;
-        int buttonIdx = 0;
-        GenericVButton buildButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 0))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        GenericVButton pauseButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 1))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/pause.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/pause_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        GenericVButton resumeButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 2))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/resume.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/resume_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        GenericVButton cancelButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 3))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/cancel.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/cancel_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        GenericVButton trashButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 4))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/trash.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/trash_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        buttonIdx = 0;
-        buttonY = buttonY + buttonSize * aspectRatio;
-        GenericVButton togglePlacesAir = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 5))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/air.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/air_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        GenericVButton togglePreserveExcavation = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize*aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 6))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/excavate.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/excavate_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        // WIP
-        GenericVButton showHologramButton = GenericVButton.Builder.of(buttonStartX + buttonSize * buttonIdx++, buttonY, buttonSize, buttonSize* aspectRatio, this)
-                .setOnPress(onPress -> this.getMinecraft().gameMode.handleInventoryButtonClick(this.getMenu().containerId, 7))
-                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hologram.png"))
-                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/hologram_disabled.png"))
-                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"))
-                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"))
-                .build();
-        addRenderableWidget(buildButton);
-        addRenderableWidget(cancelButton);
-        addRenderableWidget(pauseButton);
-        addRenderableWidget(resumeButton);
-        addRenderableWidget(trashButton);
-        addRenderableWidget(togglePlacesAir);
-        addRenderableWidget(togglePreserveExcavation);
-        addRenderableWidget(showHologramButton);
-        this.buildButton = buildButton;
-        this.cancelButton = cancelButton;
-        this.pauseButton = pauseButton;
-        this.resumeButton = resumeButton;
-        this.trashButton = trashButton;
-        this.toggleAirButton = togglePlacesAir;
-        this.toggleExcavateButton = togglePreserveExcavation;
     }
     protected void initTextWidgets() {
-        float textX = 0.48f;
-        float textY = 0.3f;
-        float offset = 0.04f;
-        float yIdx = 0;
-        BasicStringWidget stateWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
-                .text(Component.empty())
-                .build();
-        BasicStringWidget progressWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
-                .text(Component.empty())
-                .build();
-        BasicStringWidget pausedWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
-                .text(Component.empty())
-                .build();
-        BasicStringWidget excavateWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
-                .text(Component.empty())
-                .build();
-        BasicStringWidget airWidget = BasicStringWidget.Builder.of(textX, textY + offset * yIdx++, 0.2f, 0.04f, this)
-                .text(Component.empty())
-                .build();
-        addRenderableWidget(stateWidget);
-        addRenderableWidget(progressWidget);
-        addRenderableWidget(pausedWidget);
-        addRenderableWidget(excavateWidget);
-        addRenderableWidget(airWidget);
-        this.stateWidget = stateWidget;
-        this.progressWidget = progressWidget;
-        this.pauseWidget = pausedWidget;
-        this.excavateWidget = excavateWidget;
-        this.airWidget = airWidget;
     }
 
     @Override
     public void render(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        int dataTracker = SchemBuilderInterfaceData.getINSTANCE().getTracker();
-        if(tracker != dataTracker) {
-            tracker = dataTracker;
-            Map<ItemStack, Integer> materialBuffer =  SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferItems();
-            itemList.resetEntries();
-            materialBuffer.forEach((item, amt) -> {
-                itemList.addCustomEntry(((customEntry, renderWrapper) -> {
-                    GuiGraphics guiGraphics = renderWrapper.guiGraphics();
-                    guiGraphics.renderItem(item, customEntry.getX(), customEntry.getY());
-                }));
-//                itemList.addTextEntry(Component.literal("Item"));
-            });
-//            Map<ItemStack, Integer> dumpBuffer =  SchemBuilderInterfaceData.getINSTANCE().getDumpBufferItems();
-        }
-        int stateAsInt = this.getMenu().data.get(0);
-        SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
-        setButtonsByState(state);
-        updateStringWidgets(state);
+//        int dataTracker = SchemBuilderInterfaceData.getINSTANCE().getTracker();
+//        if(tracker != dataTracker) {
+//            tracker = dataTracker;
+//            Map<ItemStack, Integer> materialBuffer =  SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferItems();
+//            itemList.resetEntries();
+//            materialBuffer.forEach((item, amt) -> {
+//                itemList.addCustomEntry(((customEntry, renderWrapper) -> {
+//                    GuiGraphics guiGraphics = renderWrapper.guiGraphics();
+//                    guiGraphics.renderItem(item, customEntry.getX(), customEntry.getY());
+//                }));
+////                itemList.addTextEntry(Component.literal("Item"));
+//            });
+////            Map<ItemStack, Integer> dumpBuffer =  SchemBuilderInterfaceData.getINSTANCE().getDumpBufferItems();
+//        }
+//        int stateAsInt = this.getMenu().data.get(0);
+//        SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
+//        setButtonsByState(state);
+//        updateStringWidgets(state);
         this.renderBackground(pGuiGraphics);
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
@@ -292,59 +171,13 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     }
 
     public void setButtonsByState(SchemBuilderBlockEntity.STATE state) {
-        switch (state) {
-            case IDLE, RECEIVING_DATA, SCHEMATIC_LOCKED, DUMPING -> {
-                buildButton.active = false;
-                cancelButton.active = false;
-                pauseButton.active = false;
-                resumeButton.active = false;
-                trashButton.active = false;
-                toggleAirButton.active = true;
-                toggleExcavateButton.active = true;
-            }
-            case READY -> {
-                buildButton.active = true;
-                cancelButton.active = true;
-                pauseButton.active = false;
-                resumeButton.active = false;
-                trashButton.active = true;
-                toggleAirButton.active = true;
-                toggleExcavateButton.active = true;
-            }
-            case BUILDING -> {
-                buildButton.active = false;
-                cancelButton.active = false;
-                pauseButton.active = true;
-                resumeButton.active = true;
-                trashButton.active = true;
-                toggleAirButton.active = false;
-                toggleExcavateButton.active = false;
-            }
-        }
-        uploadButton.active = state == SchemBuilderBlockEntity.STATE.IDLE;
+
     }
     public void updateStringWidgets(SchemBuilderBlockEntity.STATE state) {
-        stateWidget.setText(state.getStateMessage());
-        int currentIndex = this.getMenu().data.get(1);
-        int lastIndex = this.getMenu().data.get(2);
-        progressWidget.setText(Component.translatable("survivalmatic.schembuilder.progress").append(currentIndex + " / " + lastIndex ));
-        int paused = this.getMenu().data.get(3);
-        pauseWidget.setText(Component.translatable("survivalmatic.schembuilder.paused").append(Boolean.toString(paused == 1)));
-        int placesAir = this.getMenu().data.get(4);
-        int excavates = this.getMenu().data.get(5);
-        excavateWidget.setText(Component.translatable("survivalmatic.schembuilder.keeps_excavated").append(Boolean.toString(excavates == 1)));
-        airWidget.setText(Component.translatable("survivalmatic.schembuilder.places_air").append(Boolean.toString(placesAir == 1)));
+
     }
     @Override
     protected void renderBg(@NotNull GuiGraphics guiGraphics, float v, int i, int i1) {
-        guiGraphics.blit(INVENTORY, getGuiLeft(), getGuiTop(),0,0,this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
-
-        guiGraphics.blit(GUI, RenderHelper.toAbsoluteX(0.305f, this), RenderHelper.toAbsoluteY(0.085f, this),
-                RenderHelper.toAbsoluteX(0.4f, this), RenderHelper.toAbsoluteY(0.43f, this),
-                0,0, 188, 98, 188, 98);
-        guiGraphics.blit(GUI_SIDE,RenderHelper.toAbsoluteX(0.72f, this), RenderHelper.toAbsoluteY(0.085f, this),
-                RenderHelper.toAbsoluteX(0.2f, this), RenderHelper.toAbsoluteY(0.43f, this),
-                0,0, 60, 98, 60, 98);
-        guiGraphics.blit(IO_SLOTS,getGuiLeft()-36, getGuiTop()-64,0,0, 28,46,28,46);
+        guiGraphics.blit(GUI, getGuiLeft(), getGuiTop(), imageWidth, imageHeight, 0,0 , imageWidth, imageHeight, imageWidth, imageHeight);
     }
 }

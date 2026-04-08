@@ -11,7 +11,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
     protected float yRelative;
 
     public <W extends AbstractVWidget,T extends WidgetBuilder<W,T>> AbstractVWidget(WidgetBuilder<W,T> builder) {
-        super((int) (builder.parentScreen.width * builder.xRelative), (int) (builder.parentScreen.height * builder.yRelative), builder.width, builder.height, builder.pMessage);
+        super(builder.xRelative,builder.yRelative, builder.width, builder.height, builder.pMessage);
         this.parentScreen = builder.parentScreen;
     }
     public int getXBound() {
@@ -60,16 +60,19 @@ public abstract class AbstractVWidget extends AbstractWidget {
 
     }
     public abstract static class WidgetBuilder<W extends AbstractVWidget,T extends WidgetBuilder<W,T>> {
-        public final float xRelative;
-        public final float yRelative;
+        public final int xRelative;
+        public final int yRelative;
         public final int width;
         public final int height;
         public final Screen parentScreen;
         public Component pMessage;
 
-        public WidgetBuilder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
-            this.xRelative = xRelative;
-            this.yRelative = yRelative;
+        protected WidgetBuilder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
+            this((int) (xRelative * parentScreen.width),(int) (yRelative * parentScreen.height), width, height, parentScreen);
+        }
+        protected WidgetBuilder(int x, int y, int width, int height, Screen parentScreen) {
+            this.xRelative = x;
+            this.yRelative = y;
             this.width = width;
             this.height = height;
             this.parentScreen = parentScreen;

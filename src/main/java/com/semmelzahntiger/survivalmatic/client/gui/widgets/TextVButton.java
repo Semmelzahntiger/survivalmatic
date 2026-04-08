@@ -21,16 +21,25 @@ public class TextVButton extends BaseTextVButton<TextVButton> {
 
     @Override
     public void renderHoveredDisabled(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-
+        guiGraphics.blit(this.hoverTextureDisabled, this.getX() - this.hoverLeftMargin, this.getY() - this.hoverTopMargin,
+                this.getWidth() + this.hoverLeftMargin + this.hoverRightMargin,
+                this.getHeight() + hoverTopMargin + hoverBottomMargin,
+                0,0, this.getWidth(), this.getHeight(), this.getWidth(), this.getHeight());
     }
 
     public static class Builder extends BaseTextVButton.Builder<TextVButton, Builder> {
 
-        public Builder(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
-            super(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
+        protected Builder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
+            super(xRelative, yRelative, width, height, parentScreen);
         }
-        public static Builder of(float xRelative, float yRelative, int widthRelative, int heightRelative, Screen parentScreen) {
-            return new Builder(xRelative, yRelative, widthRelative, heightRelative, parentScreen);
+        protected Builder(int x, int y, int width, int height, Screen parentScreen) {
+            super(x, y, width, height, parentScreen);
+        }
+        public static Builder of(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
+            return new Builder(xRelative, yRelative, width, height, parentScreen);
+        }
+        public static Builder of(int x, int y, int width, int height, Screen parentScreen) {
+            return new Builder(x, y, width, height, parentScreen);
         }
         @Override
         public TextVButton build() {

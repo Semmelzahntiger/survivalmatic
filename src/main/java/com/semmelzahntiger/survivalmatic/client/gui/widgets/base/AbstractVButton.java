@@ -96,8 +96,11 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         public int hoverTextureBottomMargin = 0;
 
         protected VOnPress<W> onPress = button -> {};
-        public Builder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
+        protected Builder(float xRelative, float yRelative, int width, int height, Screen parentScreen) {
             super(xRelative, yRelative, width, height, parentScreen);
+        }
+        protected Builder(int x, int y, int width, int height, Screen parentScreen) {
+            super(x, y, width, height, parentScreen);
         }
         public T setOnPress(VOnPress<W> onPress) {
             this.onPress = onPress;

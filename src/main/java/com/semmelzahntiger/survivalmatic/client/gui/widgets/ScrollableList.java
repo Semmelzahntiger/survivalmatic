@@ -170,13 +170,21 @@ public class ScrollableList extends AbstractVWidget implements IScrollableList {
         public int sliderTextureHeight = 256;
         public int sliderMargin = 0;
 
-        private Builder(float x, float y, int width, int height,int visibleEntries, Screen screen, Component message) {
+        protected Builder(float x, float y, int width, int height,int visibleEntries, Screen screen, Component message) {
+            super(x,y,width,height, screen);
+            this.visibleEntries = visibleEntries;
+            this.message = message;
+        }
+        protected Builder(int x, int y, int width, int height, int visibleEntries, Screen screen, Component message) {
             super(x,y,width,height, screen);
             this.visibleEntries = visibleEntries;
             this.message = message;
         }
         public static Builder of(float x, float y, int width, int height,int visibleEntries, Screen screen, Component message) {
             return new Builder(x,y,width,height, visibleEntries, screen, message);
+        }
+        public static Builder of(int x, int y, int width, int height,int visibleEntries, Screen screen, Component message) {
+            return new Builder(x,y,width,height,visibleEntries, screen, message);
         }
         public Builder setDefaultEntryTexture(ResourceLocation defaultEntryTexture, int width, int height) {
             this.defaultEntryTexture = defaultEntryTexture;

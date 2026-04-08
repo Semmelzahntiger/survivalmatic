@@ -18,6 +18,10 @@ import java.util.List;
 public class ClientSchematicData {
     public static final ClientSchematicData INSTANCE = new ClientSchematicData();
 
+    public static ClientSchematicData getInstance() {
+        return INSTANCE;
+    }
+
     private SchematicReader.StreamableSchematicInstance schematicInstance = null;
     private final HashMap<String, File> availableSchematics = new HashMap<>();
     private ClientSchematicData() {}
