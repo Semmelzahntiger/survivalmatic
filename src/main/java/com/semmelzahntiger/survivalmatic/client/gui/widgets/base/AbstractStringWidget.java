@@ -19,7 +19,7 @@ public class AbstractStringWidget<W extends AbstractStringWidget<W>> extends Abs
     public final boolean drawRawText;
     public final boolean alwaysScale;
     public int color;
-    public <T extends Builder<W,T>> AbstractStringWidget(Builder<W,T> builder) {
+    protected <T extends Builder<W,T>> AbstractStringWidget(Builder<W,T> builder) {
         super(builder);
         text = builder.text;
         rawText = builder.rawText;
@@ -66,7 +66,7 @@ public class AbstractStringWidget<W extends AbstractStringWidget<W>> extends Abs
     protected void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.blit(debug, this.getX(), this.getY(), this.getWidth(), this.getHeight(),0,0,256,256, 256, 256);
     }
-    public abstract static class Builder<W extends AbstractStringWidget<W>, T extends AbstractVWidget.WidgetBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W,T> {
+    protected abstract static class Builder<W extends AbstractStringWidget<W>, T extends AbstractVWidget.WidgetBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W,T> {
         public Component text = Component.empty();
         public String rawText = "";
         public boolean isCentered = false;

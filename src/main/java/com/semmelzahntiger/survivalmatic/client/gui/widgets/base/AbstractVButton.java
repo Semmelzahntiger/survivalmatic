@@ -76,7 +76,7 @@ public abstract class AbstractVButton<W extends AbstractVButton<W>> extends Abst
         void onPress(B button);
     }
 
-    public abstract static class Builder<W extends AbstractVButton<W>,T extends Builder<W,T>> extends AbstractVWidget.WidgetBuilder<W, T> {
+    protected abstract static class Builder<W extends AbstractVButton<W>,T extends Builder<W,T>> extends AbstractVWidget.WidgetBuilder<W, T> {
         public ResourceLocation buttonTextureEnabled = ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/dummy_full");
         public int buttonTextureWidth = 256;
         public int buttonTextureHeight = 256;

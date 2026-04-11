@@ -59,7 +59,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
 
     }
-    public abstract static class WidgetBuilder<W extends AbstractVWidget,T extends WidgetBuilder<W,T>> {
+    protected abstract static class WidgetBuilder<W extends AbstractVWidget,T extends WidgetBuilder<W,T>> {
         public final int xRelative;
         public final int yRelative;
         public final int width;

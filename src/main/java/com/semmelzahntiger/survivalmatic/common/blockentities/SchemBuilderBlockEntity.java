@@ -120,6 +120,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         super.invalidateCaps();
         inventoryHandlerLazyOptional.invalidate();
     }
+
     public ItemStack getInputSlot() {
         return inputSlot;
     }
@@ -132,6 +133,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public void setOutputSlot(ItemStack outputSlot) {
         this.outputSlot = outputSlot;
     }
+
     public Map<Item,Integer> getMaterialBuffer() {
         return materialBuffer;
     }
@@ -141,6 +143,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public void incrementMaterialBufferVersionCounter() {
         materialBufferVersionCounter++;
     }
+
     public Map<Item,Integer> getDumpBuffer() {
         return dumpBuffer;
     }
@@ -149,6 +152,13 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     }
     public void incrementDumpBufferVersionCounter() {
         dumpBufferVersionCounter++;
+    }
+
+    public Map<Item, Integer> getCurrentRequiredItems() {
+        if(serverSchematicInstance == null) {
+            return Collections.emptyMap();
+        }
+        return serverSchematicInstance.requiredItems();
     }
     public STATE getState() {
         return state;
@@ -204,19 +214,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             case SCHEMATIC_LOCKED -> {
                 if(serverSchematicInstance != null) {
                     tickInputSlot();
-
-                    boolean enoughResource = true;
-//                    for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
-//                        Item item = entry.getKey();
-//                        int minAmount = entry.getValue();
-//                        if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
-//                            enoughResource = false;
-//                            break;
-//                        }
-//                    }
-                    materialBuffer.putAll(serverSchematicInstance.requiredItems());
-                    incrementMaterialBufferVersionCounter();
-                    if(enoughResource) {
+                    if(enoughResourcesInMaterialBuffer()) {
                         buildInstance = new BuildInstance(getSchematicInstance());
                         yield STATE.READY;
                     }
@@ -229,7 +227,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                     yield STATE.IDLE;
                 }
                 if(buildInstance.isCanceled() || buildInstance.isFinished()) {
-                    dump();
+                    dumpItems();
                     buildInstance = null;
                     yield STATE.DUMPING;
                 }
@@ -240,18 +238,30 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             }
             case DUMPING -> {
                 tickOutputSlot();
-                Survivalmatic.LOGGER.info(getDumpBuffer().toString());
                 yield dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
             }
         };
     }
+    private boolean enoughResourcesInMaterialBuffer() {
+        boolean enoughResource = true;
+        for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
+            Item item = entry.getKey();
+            int minAmount = entry.getValue();
+            if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
+                enoughResource = false;
+                break;
+            }
+        }
+        return enoughResource;
+    }
     private void tickInputSlot() {
         ItemStack inputSlotItem = getInputSlot();
-        if(state != STATE.SCHEMATIC_LOCKED || inputSlotItem.isEmpty()) return;
+        Survivalmatic.LOGGER.info("Input Slot: {}", inputSlotItem.getDisplayName());
+        if(inputSlotItem.isEmpty()) return;
         Map<Item, Integer> storedItems = getMaterialBuffer();
         Map<Item, Integer> requiredItems = getSchematicInstance().requiredItems();
 
-        Item item = getInputSlot().getItem();
+        Item item = inputSlotItem.getItem();
         int count = inputSlotItem.getCount();
 
         if(!requiredItems.containsKey(item)) {
@@ -344,10 +354,10 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             buildInstance.setCanceled();
         }
         else if(state == STATE.SCHEMATIC_LOCKED || state == STATE.READY) {
-            dump();
+            dumpItems();
         }
     }
-    private void dump() {
+    private void dumpItems() {
         dumpBuffer.putAll(materialBuffer);
         incrementDumpBufferVersionCounter();
         materialBuffer.clear();

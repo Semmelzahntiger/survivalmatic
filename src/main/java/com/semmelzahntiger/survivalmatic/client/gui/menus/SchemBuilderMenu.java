@@ -3,15 +3,18 @@ package com.semmelzahntiger.survivalmatic.client.gui.menus;
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
-import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderItemBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderDumpBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderMaterialBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -21,6 +24,8 @@ import net.minecraftforge.items.SlotItemHandler;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class SchemBuilderMenu extends AbstractContainerMenu {
@@ -31,6 +36,8 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
     public final IItemHandler itemHandler;
     public int trackedDumpBufferVersion = -1;
     public int trackedMaterialBufferVersion = -1;
+    public int ticksUntilUpdate = 0;
+    public int tickInterval = 20;
     public SchemBuilderMenu(int id, Inventory playerInventory, ContainerLevelAccess containerAccess, IItemHandler builderInventory, GlobalPos pos, ContainerData containerData) {
         super(ModRegistry.SCHEM_BUILDER_MENU.get(), id);
         this.pos = pos;
@@ -41,19 +48,19 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         for(int col = 0; col < 9; col++) {
             this.addSlot(new Slot(
                     playerInventory,
-                    col, 89 + col * 18, 149
+                    col, 89 + col * 18, 173
             ));
             for (int row = 0; row < 3; row++) {
                 this.addSlot(new Slot(
                         playerInventory,
                         col + 9 + row * 9,
                         89 + col * 18,
-                        91 + row * 18
+                        115 + row * 18
                 ));
             }
         }
-        this.addSlot(new SlotItemHandler(builderInventory,0,58, 114));
-        this.addSlot(new SlotItemHandler(builderInventory,1,58, 132));
+        this.addSlot(new SlotItemHandler(builderInventory,0,58, 138));
+        this.addSlot(new SlotItemHandler(builderInventory,1,58, 156));
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {
@@ -144,27 +151,45 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         }
         return Optional.empty();
     }
+    protected SchemBuilderMaterialBufferPacket constructMaterialBufferPacket(SchemBuilderBlockEntity schemBuilderBlockEntity) {
+        Map<Item,Integer> itemsInBuffer = schemBuilderBlockEntity.getMaterialBuffer();
+        Map<Item,Integer> requiredItems = schemBuilderBlockEntity.getCurrentRequiredItems();
+        Map<Item, Tuple<Integer, Integer>> items = new HashMap<>();
+        requiredItems.forEach(((item,amount) -> {
+            items.put(item, new Tuple<>(itemsInBuffer.getOrDefault(item, 0), amount));
+        }));
+        return new SchemBuilderMaterialBufferPacket(items,schemBuilderBlockEntity.getLevel().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get());
+    }
+    protected SchemBuilderDumpBufferPacket constructDumpBufferPacket(SchemBuilderBlockEntity schemBuilderBlockEntity) {
+        Map<Item,Integer> itemsInBuffer = schemBuilderBlockEntity.getDumpBuffer();
+        return new SchemBuilderDumpBufferPacket(itemsInBuffer, schemBuilderBlockEntity.getLevel().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get());
+    }
 
     @Override
     public void broadcastChanges() {
         super.broadcastChanges();
         if(this.playerInventory.player instanceof ServerPlayer serverPlayer) {
-            access.execute((level, blockpos) -> {
-                getBlockEntity(level, blockpos).ifPresent(be -> {
-                    int dumpVer = be.getDumpBufferVersionCounter();
-                    int matVer = be.getMaterialBufferVersionCounter();
-                    if(trackedDumpBufferVersion != dumpVer || trackedMaterialBufferVersion != matVer) {
-                        ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer),
-                                new SchemBuilderItemBufferPacket(
-                                        be.getMaterialBuffer(),
-                                        be.getDumpBuffer(),
-                                        be.getLevel().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get()
-                                ));
-                        trackedDumpBufferVersion = dumpVer;
-                        trackedMaterialBufferVersion = matVer;
-                    }
-                });
-            });
+            access.execute((level, blockpos) -> getBlockEntity(level, blockpos).ifPresent(be -> {
+                if(ticksUntilUpdate > 0) {
+                    ticksUntilUpdate--;
+                }
+                int dumpVer = be.getDumpBufferVersionCounter();
+                int matVer = be.getMaterialBufferVersionCounter();
+                boolean resetTicks = false;
+                if(trackedMaterialBufferVersion != matVer && ticksUntilUpdate <= 0) {
+                    ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), constructMaterialBufferPacket(be));
+                    trackedMaterialBufferVersion = matVer;
+                    resetTicks = true;
+                }
+                if(trackedDumpBufferVersion != dumpVer && ticksUntilUpdate <= 0) {
+                    ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), constructDumpBufferPacket(be));
+                    trackedDumpBufferVersion = dumpVer;
+                    resetTicks = true;
+                }
+                if (resetTicks) {
+                    ticksUntilUpdate = tickInterval;
+                }
+            }));
         }
     }
 }

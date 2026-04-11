@@ -4,9 +4,10 @@ import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockE
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 
-public class SchemBuilderItemCap implements IItemHandler {
+public class SchemBuilderItemCap implements IItemHandlerModifiable {
     private final SchemBuilderBlockEntity schemBuilder;
 
     public SchemBuilderItemCap(SchemBuilderBlockEntity schemBuilder) {
@@ -94,4 +95,13 @@ public class SchemBuilderItemCap implements IItemHandler {
         return instance != null && schemBuilder.getSchematicInstance().requiredItems().containsKey(itemStack.getItem());
     }
 
+    @Override
+    public void setStackInSlot(int i, @NotNull ItemStack itemStack) {
+        if(i == 0) {
+            schemBuilder.setInputSlot(itemStack);
+        }
+        else if(i == 1) {
+            schemBuilder.setOutputSlot(itemStack);
+        }
+    }
 }
