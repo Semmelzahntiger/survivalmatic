@@ -295,6 +295,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         this.excavateDisplayWidget = excavateDisplayWidget;
     }
 
+    // Todo: Extract custom entry logic
     @Override
     public void render(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         int materialTracker = SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferTracker();
@@ -302,34 +303,36 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         if(this.materialTracker != materialTracker) {
             this.materialTracker = materialTracker;
             materialsList.resetEntries();
-            SchemBuilderInterfaceData.getINSTANCE().getMaterials().forEach((item, values) -> materialsList.addCustomEntry(((customEntry, renderWrapper) -> {
-                if(customEntry.getY() < materialsList.getY() || customEntry.getY() >= materialsList.getYBound()) {
-                    return;
-                }
-                GuiGraphics guiGraphics = renderWrapper.guiGraphics();
-                int entryWidth = customEntry.getWidth();
-                int entryHeight = customEntry.getHeight();
-                float scaleX = (float) entryWidth / 16;
-                float scaleY = (float) entryHeight / 16;
-                float usedScaling = Math.min(1.0f, Math.min(scaleX, scaleY));
-                float scalePositionAdjustment = 1.0f / usedScaling;
-                guiGraphics.pose().pushPose();
-                guiGraphics.pose().scale(usedScaling, usedScaling, 1.0f);
-                guiGraphics.renderItem(item, (int) (customEntry.getX() * scalePositionAdjustment), (int) (customEntry.getY() * scalePositionAdjustment));
-                Font font = Minecraft.getInstance().font;
-                FormattedCharSequence charSequence = FormattedCharSequence.forward(values.getA() + "/" + values.getB(), Style.EMPTY);
-                int textHeight = font.lineHeight;
-                int textWidth = font.width(charSequence);
-                float widthScaling = Math.min(1.0f, (float) (customEntry.getWidth()-16) / textWidth);
-                float heightScaling = Math.min(1.0f, (float) customEntry.getHeight() / textHeight);
-                float scaling = Math.min(widthScaling, heightScaling);
-                float positionScaleCorrectionMultiplier = 1.0f / scaling;
-                guiGraphics.pose().pushPose();
-                guiGraphics.pose().scale(scaling, scaling, 1.0f);
-                guiGraphics.drawString(font, charSequence, (int) (customEntry.getX() + customEntry.getWidth() - textWidth * positionScaleCorrectionMultiplier),
-                        (int) ((customEntry.getY() + ((float) customEntry.getHeight() / 2) - ((float) textHeight / 2)) * positionScaleCorrectionMultiplier), 0xFFFFF);
-                guiGraphics.pose().popPose();
-            })));
+            SchemBuilderInterfaceData.getINSTANCE().getMaterials().forEach((item, values) -> {
+                materialsList.addCustomEntry(((customEntry, renderWrapper) -> {
+                    if(customEntry.getY() < materialsList.getY() || customEntry.getY() >= materialsList.getYBound()) {
+                        return;
+                    }
+                    GuiGraphics guiGraphics = renderWrapper.guiGraphics();
+                    int entryWidth = customEntry.getWidth();
+                    int entryHeight = customEntry.getHeight();
+                    float scaleX = (float) entryWidth / 16;
+                    float scaleY = (float) entryHeight / 16;
+                    float usedScaling = Math.min(1.0f, Math.min(scaleX, scaleY));
+                    float scalePositionAdjustment = 1.0f / usedScaling;
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().scale(usedScaling, usedScaling, 1.0f);
+                    guiGraphics.renderItem(item, (int) (customEntry.getX() * scalePositionAdjustment), (int) (customEntry.getY() * scalePositionAdjustment));
+                    Font font = Minecraft.getInstance().font;
+                    FormattedCharSequence charSequence = FormattedCharSequence.forward(values.getA() + "/" + values.getB(), Style.EMPTY);
+                    int textHeight = font.lineHeight;
+                    int textWidth = font.width(charSequence);
+                    float widthScaling = Math.min(1.0f, (float) (customEntry.getWidth()-16) / textWidth);
+                    float heightScaling = Math.min(1.0f, (float) customEntry.getHeight() / textHeight);
+                    float scaling = Math.min(widthScaling, heightScaling);
+                    float positionScaleCorrectionMultiplier = 1.0f / scaling;
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().scale(scaling, scaling, 1.0f);
+                    guiGraphics.drawString(font, charSequence, (int) ((customEntry.getX() + customEntry.getWidth() - textWidth) * positionScaleCorrectionMultiplier),
+                            (int) ((customEntry.getY() + ((float) customEntry.getHeight() / 2) - ((float) textHeight / 2)) * positionScaleCorrectionMultiplier), 0xFFFFFF);
+                    guiGraphics.pose().popPose();
+                }));
+            });
         }
         if(this.dumpTracker != dumpTracker) {
             this.dumpTracker = dumpTracker;
@@ -349,6 +352,18 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                     guiGraphics.pose().pushPose();
                     guiGraphics.pose().scale(usedScaling, usedScaling, 1.0f);
                     guiGraphics.renderItem(item, (int) (customEntry.getX() * scalePositionAdjustment), (int) (customEntry.getY() * scalePositionAdjustment));
+                    Font font = Minecraft.getInstance().font;
+                    FormattedCharSequence charSequence = FormattedCharSequence.forward(String.valueOf(values), Style.EMPTY);
+                    int textHeight = font.lineHeight;
+                    int textWidth = font.width(charSequence);
+                    float widthScaling = Math.min(1.0f, (float) (customEntry.getWidth()-16) / textWidth);
+                    float heightScaling = Math.min(1.0f, (float) customEntry.getHeight() / textHeight);
+                    float scaling = Math.min(widthScaling, heightScaling);
+                    float positionScaleCorrectionMultiplier = 1.0f / scaling;
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().scale(scaling, scaling, 1.0f);
+                    guiGraphics.drawString(font, charSequence, (int) ((customEntry.getX() + customEntry.getWidth() - textWidth) * positionScaleCorrectionMultiplier),
+                            (int) ((customEntry.getY() + ((float) customEntry.getHeight() / 2) - ((float) textHeight / 2)) * positionScaleCorrectionMultiplier), 0xFFFFFF);
                     guiGraphics.pose().popPose();
                 });
             });

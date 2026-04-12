@@ -13,6 +13,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -40,7 +41,7 @@ public class SchemBuilderDumpBufferPacket implements IPacketPayload {
             if(registry.isPresent()) {
                 Registry<Item> itemRegistry = registry.get();
                 int size = buf.readInt();
-                Map<Item,Integer> items = new HashMap<>();
+                LinkedHashMap<Item,Integer> items = new LinkedHashMap<>();
                 for (int i = 0; i < size; i++) {
                     items.put(buf.readById(itemRegistry), buf.readInt());
                 }

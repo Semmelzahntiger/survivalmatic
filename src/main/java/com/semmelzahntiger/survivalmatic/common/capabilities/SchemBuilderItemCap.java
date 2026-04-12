@@ -57,24 +57,29 @@ public class SchemBuilderItemCap implements IItemHandlerModifiable {
     public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
         if(slot == 0) {
             ItemStack inputSlot = schemBuilder.getInputSlot();
-            return getReturnedItem(amount, inputSlot);
+            return getReturnedItem(slot, amount, inputSlot);
         }
         else if (slot == 1) {
             ItemStack outputSlot = schemBuilder.getOutputSlot();
-            return getReturnedItem(amount, outputSlot);
+            return getReturnedItem(slot, amount, outputSlot);
         }
         return ItemStack.EMPTY;
     }
 
     @NotNull
-    private ItemStack getReturnedItem(int amount, ItemStack slotItemStack) {
+    private ItemStack getReturnedItem(int slot, int amount, ItemStack slotItemStack) {
         if(slotItemStack.isEmpty()) {
             return ItemStack.EMPTY;
         }
         int storedAmount = slotItemStack.getCount();
         ItemStack returned = slotItemStack.copy();
         if(amount >= storedAmount) {
-            schemBuilder.setInputSlot(ItemStack.EMPTY);
+            if(slot == 0) {
+                schemBuilder.setInputSlot(ItemStack.EMPTY);
+            }
+            else {
+                schemBuilder.setOutputSlot(ItemStack.EMPTY);
+            }
         }
         else {
             returned.setCount(amount);

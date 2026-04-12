@@ -16,10 +16,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class SchematicReader {
@@ -106,10 +103,10 @@ public class SchematicReader {
             short height;
             short length;
             byte[] blockDataBytes;
-            HashMap<Integer, String> paletteMap = new HashMap<>();
-            HashMap<Integer, BlockState> blockStateMap = new HashMap<>();
-            HashMap<Integer, Item> itemMap = new HashMap<>();
-            HashMap<Item, Integer> requiredItems = new HashMap<>();
+            LinkedHashMap<Integer, String> paletteMap = new LinkedHashMap<>();
+            LinkedHashMap<Integer, BlockState> blockStateMap = new LinkedHashMap<>();
+            LinkedHashMap<Integer, Item> itemMap = new LinkedHashMap<>();
+            LinkedHashMap<Item, Integer> requiredItems = new LinkedHashMap<>();
             CompoundTag paletteTag;
             // Schematic Version 2 Parser
             if (version == 2) {
@@ -192,9 +189,9 @@ public class SchematicReader {
     }
     private static Optional<SchematicInstance> readNbtFile(String name, ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
-            HashMap<Integer, BlockState> blockStateMap = new HashMap<>();
-            HashMap<Integer, Item> itemMap = new HashMap<>();
-            HashMap<Item, Integer> requiredItems = new HashMap<>();
+            LinkedHashMap<Integer, BlockState> blockStateMap = new LinkedHashMap<>();
+            LinkedHashMap<Integer, Item> itemMap = new LinkedHashMap<>();
+            LinkedHashMap<Item, Integer> requiredItems = new LinkedHashMap<>();
             CompoundTag schematic = NbtIo.readCompressed(stream);
             int[] dimensions = schematic.getIntArray("size");
             int width = dimensions[0];
@@ -289,7 +286,7 @@ public class SchematicReader {
      * @param requiredItems All required Items for the Schematic
      */
     public record SchematicInstance(String name, int width, int height, int length, int[] blockData, BlockPos offset,
-                                    Map<Integer, BlockState> palette, Map<Item, Integer> requiredItems) {
+                                    Map<Integer, BlockState> palette, LinkedHashMap<Item, Integer> requiredItems) {
         public BlockState getBlockState(int x, int y, int z) {
                 if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) {
                     return Blocks.AIR.defaultBlockState();

@@ -14,6 +14,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -40,9 +41,9 @@ public class SchemBuilderMaterialBufferPacket implements IPacketPayload {
         if( connection != null ) {
             RegistryAccess access = connection.registryAccess();
             Optional<Registry<Item>> itemRegistry = access.registry(ForgeRegistries.ITEMS.getRegistryKey());
-            if( itemRegistry.isPresent() ) {
+            if(itemRegistry.isPresent() ) {
                 Registry<Item> registry = itemRegistry.get();
-                Map<Item, Tuple<Integer, Integer>> items = new HashMap<>();
+                LinkedHashMap<Item, Tuple<Integer, Integer>> items = new LinkedHashMap<>();
                 int size = buf.readInt();
                 for (int i = 0; i < size; i++) {
                     Item item = buf.readById(registry);

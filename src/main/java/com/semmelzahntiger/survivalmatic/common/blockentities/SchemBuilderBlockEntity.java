@@ -57,7 +57,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
     }
     private STATE state = STATE.IDLE;
-    private final Map<Item,Integer> materialBuffer = new HashMap<>();
+    private final LinkedHashMap<Item,Integer> materialBuffer = new LinkedHashMap<>();
     private int materialBufferVersionCounter = 0;
 
     private final LinkedHashMap<Item, Integer> dumpBuffer = new LinkedHashMap<>();
@@ -160,6 +160,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
         return serverSchematicInstance.requiredItems();
     }
+
     public STATE getState() {
         return state;
     }
@@ -198,6 +199,8 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public void setSchematicInstance(SchematicReader.SchematicInstance serverSchematicInstance) {
         state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
+        incrementMaterialBufferVersionCounter();
+        incrementDumpBufferVersionCounter();
         Survivalmatic.LOGGER.info("SchemBuilder @{}/{} received Schematic {}", this.getBlockPos(), this.getLevel().dimension(), serverSchematicInstance.name());
     }
     public static <T extends BlockEntity> void tick(Level level, BlockPos pos, BlockState state, T Entity) {
@@ -256,7 +259,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     }
     private void tickInputSlot() {
         ItemStack inputSlotItem = getInputSlot();
-        Survivalmatic.LOGGER.info("Input Slot: {}", inputSlotItem.getDisplayName());
         if(inputSlotItem.isEmpty()) return;
         Map<Item, Integer> storedItems = getMaterialBuffer();
         Map<Item, Integer> requiredItems = getSchematicInstance().requiredItems();
@@ -280,6 +282,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 storedItems.put(item, count);
                 setInputSlot(ItemStack.EMPTY);
             }
+            incrementMaterialBufferVersionCounter();
         }
     }
     private void tickOutputSlot() {
@@ -303,6 +306,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             ItemStack outputtedItem = new ItemStack(item.getKey());
             outputtedItem.setCount(outputted);
             setOutputSlot(outputtedItem);
+            incrementDumpBufferVersionCounter();
         }
     }
     private void tryTransferSlot() {

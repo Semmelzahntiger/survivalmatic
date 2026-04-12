@@ -8,12 +8,13 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @OnlyIn(Dist.CLIENT)
 public class SchemBuilderInterfaceData {
-    public Map<ItemStack, Tuple<Integer, Integer>> materials = new HashMap<>();
-    public Map<ItemStack, Integer> dumpBufferItems = new HashMap<>();
+    public Map<ItemStack, Tuple<Integer, Integer>> materials = new LinkedHashMap<>();
+    public Map<ItemStack, Integer> dumpBufferItems = new LinkedHashMap<>();
     public int materialBufferTracker = 0;
     public int dumpBufferTracker = 0;
     private static final SchemBuilderInterfaceData INSTANCE = new SchemBuilderInterfaceData();
