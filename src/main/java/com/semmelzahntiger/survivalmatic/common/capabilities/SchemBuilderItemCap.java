@@ -1,5 +1,6 @@
 package com.semmelzahntiger.survivalmatic.common.capabilities;
 
+import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockEntity;
 import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.world.item.ItemStack;
@@ -16,7 +17,7 @@ public class SchemBuilderItemCap implements IItemHandlerModifiable {
 
     @Override
     public int getSlots() {
-        return 1;
+        return 2;
     }
 
     @Override
@@ -57,11 +58,11 @@ public class SchemBuilderItemCap implements IItemHandlerModifiable {
     public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
         if(slot == 0) {
             ItemStack inputSlot = schemBuilder.getInputSlot();
-            return getReturnedItem(slot, amount, inputSlot);
+            return simulate ? new ItemStack(inputSlot.getItem()) : getReturnedItem(slot, amount, inputSlot);
         }
         else if (slot == 1) {
             ItemStack outputSlot = schemBuilder.getOutputSlot();
-            return getReturnedItem(slot, amount, outputSlot);
+            return simulate ? new ItemStack(outputSlot.getItem()): getReturnedItem(slot, amount, outputSlot);
         }
         return ItemStack.EMPTY;
     }
@@ -90,7 +91,7 @@ public class SchemBuilderItemCap implements IItemHandlerModifiable {
 
     @Override
     public int getSlotLimit(int i) {
-        return Integer.MAX_VALUE;
+        return 64;
     }
 
     @Override
