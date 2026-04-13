@@ -59,13 +59,16 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     BasicStringWidget placesAirDisplayWidget;
     BasicStringWidget excavateDisplayWidget;
 
+    public int materialTracker = -1;
+    public int dumpTracker = -1;
+    public int schematicDataTracker = -1;
+
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
         this.imageWidth = 338;
         this.imageHeight = 197;
     }
-    public int materialTracker = -1;
-    public int dumpTracker = -1;
+
 
     @Override
     protected void init() {
@@ -295,8 +298,11 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     // Todo: Extract custom entry logic
     @Override
     public void render(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        int materialTracker = ClientSchemBuilderInterfaceData.getInstance().getMaterialBufferTracker();
-        int dumpTracker = ClientSchemBuilderInterfaceData.getInstance().getDumpBufferTracker();
+        ClientSchemBuilderInterfaceData interfaceData = ClientSchemBuilderInterfaceData.getInstance();
+        int materialTracker = interfaceData.getMaterialBufferTracker();
+        int dumpTracker = interfaceData.getDumpBufferTracker();
+        int schematicDataTracker = interfaceData.getSchematicDataTracker();
+        // Todo: Create dedicated Entry type for item list
         if(this.materialTracker != materialTracker) {
             this.materialTracker = materialTracker;
             materialsList.resetEntries();
@@ -364,6 +370,10 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                     guiGraphics.pose().popPose();
                 });
             });
+        }
+        if(this.schematicDataTracker != schematicDataTracker) {
+            this.schematicNameDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.schematic_name").append(interfaceData.getSchematicName()));
+            // Todo: Width, Height, Length Widget updating
         }
         int stateAsInt = this.getMenu().data.get(0);
         SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
