@@ -56,25 +56,27 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             return idToState.get(id);
         }
     }
-    private STATE state = STATE.IDLE;
+    private @NotNull STATE state = STATE.IDLE;
     private final LinkedHashMap<Item,Integer> materialBuffer = new LinkedHashMap<>();
     private int materialBufferVersionCounter = 0;
 
     private final LinkedHashMap<Item, Integer> dumpBuffer = new LinkedHashMap<>();
     private int dumpBufferVersionCounter = 0;
 
-    private SchematicReader.SchematicInstance serverSchematicInstance = null;
+    private @Nullable SchematicReader.SchematicInstance serverSchematicInstance = null;
+    private int schematicInstanceVersionCounter = 0;
 
-    private BuildInstance buildInstance = null;
+    private @Nullable BuildInstance buildInstance = null;
     private boolean placesAir = false;
     private boolean preserveExcavation = false;
-    private Vec3i offset = new Vec3i(1,0,1);
 
-    public IItemHandler itemHandler;
-    LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
+    private @NotNull Vec3i offset = new Vec3i(1,0,1);
 
-    public ItemStack inputSlot = ItemStack.EMPTY;
-    public ItemStack outputSlot = ItemStack.EMPTY;
+    public @NotNull IItemHandler itemHandler;
+    @NotNull LazyOptional<IItemHandler> inventoryHandlerLazyOptional;
+
+    public @NotNull ItemStack inputSlot = ItemStack.EMPTY;
+    public @NotNull ItemStack outputSlot = ItemStack.EMPTY;
 
     public SchemBuilderBlockEntity(BlockPos pPos, BlockState pBlockState) {
         super(ModRegistry.SCHEM_BUILDER_BE.get(), pPos, pBlockState);
@@ -102,6 +104,10 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             // Active Sync
             case 4 -> placesAir ? 1 : 0;
             case 5 -> preserveExcavation ? 1 : 0;
+            // Offset Data
+            case 6 -> offset.getX();
+            case 7 -> offset.getY();
+            case 8 -> offset.getZ();
             default -> 0;
         };
     }
@@ -112,7 +118,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
 
     @Override
     public int getCount() {
-        return 6;
+        return 9;
     }
 
     @Override
@@ -121,16 +127,16 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         inventoryHandlerLazyOptional.invalidate();
     }
 
-    public ItemStack getInputSlot() {
+    public @NotNull ItemStack getInputSlot() {
         return inputSlot;
     }
-    public void setInputSlot(ItemStack inputSlot) {
+    public void setInputSlot(@NotNull ItemStack inputSlot) {
         this.inputSlot = inputSlot;
     }
-    public ItemStack getOutputSlot() {
+    public @NotNull ItemStack getOutputSlot() {
         return outputSlot;
     }
-    public void setOutputSlot(ItemStack outputSlot) {
+    public void setOutputSlot(@NotNull ItemStack outputSlot) {
         this.outputSlot = outputSlot;
     }
 
@@ -153,6 +159,12 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public void incrementDumpBufferVersionCounter() {
         dumpBufferVersionCounter++;
     }
+    public int getSchematicInstanceVersionCounter() {
+        return schematicInstanceVersionCounter;
+    }
+    public void incrementSchematicInstanceVersionCounter() {
+        schematicInstanceVersionCounter++;
+    }
 
     public Map<Item, Integer> getCurrentRequiredItems() {
         if(serverSchematicInstance == null) {
@@ -161,10 +173,10 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         return serverSchematicInstance.requiredItems();
     }
 
-    public STATE getState() {
+    public @NotNull STATE getState() {
         return state;
     }
-    private void setState(STATE state) {
+    private void setState(@NotNull STATE state) {
         this.state = state;
     }
     public boolean newIncomingRequest() {
@@ -186,8 +198,11 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public boolean preservesExcavation() {
         return preserveExcavation;
     }
-    public void setOffset(Vec3i offset) {
+    public void setOffset(@NotNull Vec3i offset) {
         this.offset = offset;
+    }
+    public @NotNull Vec3i getOffset() {
+        return offset;
     }
 
     public void clearDumpBuffer() {
@@ -199,6 +214,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     public void setSchematicInstance(SchematicReader.SchematicInstance serverSchematicInstance) {
         state = STATE.SCHEMATIC_LOCKED;
         this.serverSchematicInstance = serverSchematicInstance;
+        incrementSchematicInstanceVersionCounter();
         incrementMaterialBufferVersionCounter();
         incrementDumpBufferVersionCounter();
         Survivalmatic.LOGGER.info("SchemBuilder @{}/{} received Schematic {}", this.getBlockPos(), this.getLevel().dimension(), serverSchematicInstance.name());

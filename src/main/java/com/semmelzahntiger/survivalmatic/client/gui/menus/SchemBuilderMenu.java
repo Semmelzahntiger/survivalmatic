@@ -5,7 +5,9 @@ import com.semmelzahntiger.survivalmatic.common.blockentities.SchemBuilderBlockE
 import com.semmelzahntiger.survivalmatic.common.network.ModNetwork;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderDumpBufferPacket;
 import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderMaterialBufferPacket;
+import com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata.SchemBuilderSchematicDataPacket;
 import com.semmelzahntiger.survivalmatic.common.registries.ModRegistry;
+import com.semmelzahntiger.survivalmatic.common.schem.SchematicReader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -34,8 +36,11 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
     public final ContainerData data;
     public final Inventory playerInventory;
     public final IItemHandler itemHandler;
+
     public int trackedDumpBufferVersion = -1;
     public int trackedMaterialBufferVersion = -1;
+    public int trackedSchematicDataVersion = -1;
+
     public int ticksUntilUpdate = 0;
     public int tickInterval = 20;
     public SchemBuilderMenu(int id, Inventory playerInventory, ContainerLevelAccess containerAccess, IItemHandler builderInventory, GlobalPos pos, ContainerData containerData) {
@@ -64,12 +69,12 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {
-        this(pContainerId, playerInventory,ContainerLevelAccess.NULL, new ItemStackHandler(2), pBuffer.readGlobalPos(), new SimpleContainerData(6));
+        this(pContainerId, playerInventory,ContainerLevelAccess.NULL, new ItemStackHandler(2), pBuffer.readGlobalPos(), new SimpleContainerData(9));
     }
     // Todo: Implement quick moving
     @Override
     public ItemStack quickMoveStack(Player player, int i) {
-       return null;
+       return ItemStack.EMPTY;
     }
 
     @Override
@@ -164,6 +169,13 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         Map<Item,Integer> itemsInBuffer = schemBuilderBlockEntity.getDumpBuffer();
         return new SchemBuilderDumpBufferPacket(itemsInBuffer, schemBuilderBlockEntity.getLevel().registryAccess().registry(ForgeRegistries.ITEMS.getRegistryKey()).get());
     }
+    protected SchemBuilderSchematicDataPacket constructSchematicDataPacket(SchemBuilderBlockEntity schemBuilderBlockEntity) {
+        SchematicReader.SchematicInstance schematicInstance = schemBuilderBlockEntity.getSchematicInstance();
+        if(schematicInstance == null) {
+            return new SchemBuilderSchematicDataPacket("", 0,0,0);
+        }
+        return new SchemBuilderSchematicDataPacket(schematicInstance.name(), schematicInstance.width(), schematicInstance.height(), schematicInstance.length());
+    }
 
     @Override
     public void broadcastChanges() {
@@ -173,21 +185,26 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                 if(ticksUntilUpdate > 0) {
                     ticksUntilUpdate--;
                 }
-                int dumpVer = be.getDumpBufferVersionCounter();
-                int matVer = be.getMaterialBufferVersionCounter();
+                int dumpBufferVersion = be.getDumpBufferVersionCounter();
+                int materialBufferVersion = be.getMaterialBufferVersionCounter();
                 boolean resetTicks = false;
-                if(trackedMaterialBufferVersion != matVer && ticksUntilUpdate <= 0) {
+                if(trackedMaterialBufferVersion != materialBufferVersion && ticksUntilUpdate <= 0) {
                     ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), constructMaterialBufferPacket(be));
-                    trackedMaterialBufferVersion = matVer;
+                    trackedMaterialBufferVersion = materialBufferVersion;
                     resetTicks = true;
                 }
-                if(trackedDumpBufferVersion != dumpVer && ticksUntilUpdate <= 0) {
+                if(trackedDumpBufferVersion != dumpBufferVersion && ticksUntilUpdate <= 0) {
                     ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), constructDumpBufferPacket(be));
-                    trackedDumpBufferVersion = dumpVer;
+                    trackedDumpBufferVersion = dumpBufferVersion;
                     resetTicks = true;
                 }
                 if (resetTicks) {
                     ticksUntilUpdate = tickInterval;
+                }
+                int schematicDataVersion = be.getSchematicInstanceVersionCounter();
+                if(schematicDataVersion != materialBufferVersion) {
+                    ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), constructSchematicDataPacket(be));
+                    trackedSchematicDataVersion = schematicDataVersion;
                 }
             }));
         }

@@ -2,7 +2,7 @@ package com.semmelzahntiger.survivalmatic.client.gui.screens;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
 import com.semmelzahntiger.survivalmatic.client.data.ClientSchematicData;
-import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
+import com.semmelzahntiger.survivalmatic.client.data.ClientSchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.client.gui.menus.SchemBuilderMenu;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.*;
 import com.semmelzahntiger.survivalmatic.client.gui.widgets.base.IScrollableList;
@@ -19,12 +19,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static com.semmelzahntiger.survivalmatic.Survivalmatic.MODID;
@@ -298,12 +295,12 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     // Todo: Extract custom entry logic
     @Override
     public void render(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        int materialTracker = SchemBuilderInterfaceData.getINSTANCE().getMaterialBufferTracker();
-        int dumpTracker = SchemBuilderInterfaceData.getINSTANCE().getDumpBufferTracker();
+        int materialTracker = ClientSchemBuilderInterfaceData.getInstance().getMaterialBufferTracker();
+        int dumpTracker = ClientSchemBuilderInterfaceData.getInstance().getDumpBufferTracker();
         if(this.materialTracker != materialTracker) {
             this.materialTracker = materialTracker;
             materialsList.resetEntries();
-            SchemBuilderInterfaceData.getINSTANCE().getMaterials().forEach((item, values) -> {
+            ClientSchemBuilderInterfaceData.getInstance().getMaterials().forEach((item, values) -> {
                 materialsList.addCustomEntry(((customEntry, renderWrapper) -> {
                     if(customEntry.getY() < materialsList.getY() || customEntry.getY() >= materialsList.getYBound()) {
                         return;
@@ -337,7 +334,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         if(this.dumpTracker != dumpTracker) {
             this.dumpTracker = dumpTracker;
             dumpingList.resetEntries();
-            SchemBuilderInterfaceData.getINSTANCE().getDumpBufferItems().forEach((item, values) -> {
+            ClientSchemBuilderInterfaceData.getInstance().getDumpBufferItems().forEach((item, values) -> {
                 dumpingList.addCustomEntry((customEntry, renderWrapper) -> {
                     if(customEntry.getY() < materialsList.getY() || customEntry.getY() >= materialsList.getYBound()) {
                         return;

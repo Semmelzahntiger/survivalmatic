@@ -1,7 +1,7 @@
 package com.semmelzahntiger.survivalmatic.common.network.packets.s2c.interfacedata;
 
 import com.semmelzahntiger.survivalmatic.Survivalmatic;
-import com.semmelzahntiger.survivalmatic.client.data.SchemBuilderInterfaceData;
+import com.semmelzahntiger.survivalmatic.client.data.ClientSchemBuilderInterfaceData;
 import com.semmelzahntiger.survivalmatic.common.network.packets.IPacketPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -13,7 +13,6 @@ import net.minecraft.world.item.Item;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -64,6 +63,6 @@ public class SchemBuilderMaterialBufferPacket implements IPacketPayload {
 
     @Override
     public void handleOnMainThread(Supplier<NetworkEvent.Context> ctx) {
-        SchemBuilderInterfaceData.getINSTANCE().computeMaterialBufferPacket(this);
+        ClientSchemBuilderInterfaceData.getInstance().computeMaterialBufferPacket(this);
     }
 }
