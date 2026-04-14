@@ -248,6 +248,9 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 if(buildInstance.isCanceled() || buildInstance.isFinished()) {
                     dumpItems();
                     buildInstance = null;
+                    incrementMaterialBufferVersionCounter();
+                    incrementDumpBufferVersionCounter();
+                    incrementSchematicInstanceVersionCounter();
                     yield STATE.DUMPING;
                 }
                 if(!buildInstance.isPaused()) {
@@ -266,7 +269,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         for (Map.Entry<Item, Integer> entry : serverSchematicInstance.requiredItems().entrySet()) {
             Item item = entry.getKey();
             int minAmount = entry.getValue();
-            if(!materialBuffer.containsKey(item) || (materialBuffer.containsKey(item) && !(materialBuffer.get(item) > minAmount))) {
+            if(!materialBuffer.containsKey(item) || materialBuffer.get(item) < minAmount) {
                 enoughResource = false;
                 break;
             }
@@ -295,7 +298,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                 tryTransferSlot();
             }
             else {
-                storedItems.put(item, count);
+                storedItems.put(item, storedAmount+count);
                 setInputSlot(ItemStack.EMPTY);
             }
             incrementMaterialBufferVersionCounter();
@@ -375,6 +378,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
         else if(state == STATE.SCHEMATIC_LOCKED || state == STATE.READY) {
             dumpItems();
+            setState(STATE.DUMPING);
         }
     }
     private void dumpItems() {

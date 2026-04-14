@@ -179,7 +179,6 @@ public class SchematicReader {
                 }
             }
             Survivalmatic.LOGGER.info("Read schematic successfully");
-            Survivalmatic.LOGGER.info("DEBUG: {}, {} | {}/ {}", debugCountItem, debugCountAir, debugCountItem + debugCountAir, width*height*length);
             return Optional.of(new SchematicInstance(name,width, height, length, blockDataIntegers, schematicOffset, blockStateMap, requiredItems));
         }
         catch (IOException exception) {
@@ -187,6 +186,7 @@ public class SchematicReader {
             return Optional.empty();
         }
     }
+    // Todo: Fix Bug that prevents proper reading
     private static Optional<SchematicInstance> readNbtFile(String name, ByteArrayInputStream stream, HolderLookup.Provider registry) {
         try {
             LinkedHashMap<Integer, BlockState> blockStateMap = new LinkedHashMap<>();
@@ -286,7 +286,7 @@ public class SchematicReader {
      * @param requiredItems All required Items for the Schematic
      */
     public record SchematicInstance(String name, int width, int height, int length, int[] blockData, BlockPos offset,
-                                    Map<Integer, BlockState> palette, LinkedHashMap<Item, Integer> requiredItems) {
+                                    LinkedHashMap<Integer, BlockState> palette, LinkedHashMap<Item, Integer> requiredItems) {
         public BlockState getBlockState(int x, int y, int z) {
                 if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) {
                     return Blocks.AIR.defaultBlockState();

@@ -393,7 +393,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         switch (state) {
             case IDLE, RECEIVING_DATA, SCHEMATIC_LOCKED, DUMPING -> {
                 buildButton.active = false;
-                cancelButton.active = false;
+                cancelButton.active = true;
                 pauseButton.active = false;
                 resumeButton.active = false;
                 trashButton.active = false;

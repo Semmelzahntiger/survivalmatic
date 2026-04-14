@@ -172,7 +172,7 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
     protected SchemBuilderSchematicDataPacket constructSchematicDataPacket(SchemBuilderBlockEntity schemBuilderBlockEntity) {
         SchematicReader.SchematicInstance schematicInstance = schemBuilderBlockEntity.getSchematicInstance();
         if(schematicInstance == null) {
-            return new SchemBuilderSchematicDataPacket("", 0,0,0);
+            return new SchemBuilderSchematicDataPacket("No Schematic Selected", 0,0,0);
         }
         return new SchemBuilderSchematicDataPacket(schematicInstance.name(), schematicInstance.width(), schematicInstance.height(), schematicInstance.length());
     }
