@@ -123,7 +123,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                         Survivalmatic.LOGGER.warn("No schematic selected in Dropdown List, skip loading...");
                     }
                 })
-                .setText(Component.literal("Load"))
+                .setText(Component.translatable("survivalmatic.schembuilder.button.load"))
                 .build();
         // Todo: Finish Waiting Logic
         TextVButton uploadButton = TextVButton.Builder.of(getGuiLeft()+101, getGuiTop()+86, 30,20, this)
@@ -140,24 +140,25 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                     Tuple<CompletableFuture<Boolean>, CompletableFuture<Boolean>> futures = ClientPayloadManager.INSTANCE.newRequest(
                             ClientSchematicData.INSTANCE.getSchematicInstance(), getMenu().pos
                     );
+                    clientLogDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.log.send_request"));
                     futures.getA().thenAccept(val -> {
                         if(val) {
-
+                            clientLogDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.log.request_accepted"));
                         }
                         else {
-
+                            clientLogDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.log.request_denied"));
                         }
                     });
                     futures.getB().thenAccept(val -> {
                         if(val) {
-
+                            clientLogDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.log.transfer_success"));
                         }
                         else {
-
+                            clientLogDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.log.transfer_failed"));
                         }
                     });
                 })
-                .setText(Component.literal("Upload"))
+                .setText(Component.translatable("survivalmatic.schembuilder.button.upload"))
                 .build();
         addRenderableWidget(materialsList);
         addRenderableWidget(dumpingList);
@@ -372,7 +373,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
             });
         }
         if(this.schematicDataTracker != schematicDataTracker) {
-            this.schematicNameDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.schematic_name").append(interfaceData.getSchematicName()));
+            this.schematicNameDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.schematic.schematic_name").append(interfaceData.getSchematicName()));
             // Todo: Width, Height, Length Widget updating
         }
         int stateAsInt = this.getMenu().data.get(0);
@@ -426,13 +427,13 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         stateDisplayWidget.setText(state.getStateMessage());
         int currentIndex = this.getMenu().data.get(1);
         int lastIndex = this.getMenu().data.get(2);
-        progressDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.progress").append(currentIndex + " / " + lastIndex ));
+        progressDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.progress").append(currentIndex + " / " + lastIndex ));
         int paused = this.getMenu().data.get(3);
-        pausedDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.paused").append(Boolean.toString(paused == 1)));
+        pausedDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.paused").append(Boolean.toString(paused == 1)));
         int placesAir = this.getMenu().data.get(4);
         int excavates = this.getMenu().data.get(5);
-        excavateDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.keeps_excavated").append(Boolean.toString(excavates == 1)));
-        placesAirDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.places_air").append(Boolean.toString(placesAir == 1)));
+        excavateDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.keeps_excavated").append(Boolean.toString(excavates == 1)));
+        placesAirDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.places_air").append(Boolean.toString(placesAir == 1)));
     }
     @Override
     protected void renderBg(@NotNull GuiGraphics guiGraphics, float v, int i, int i1) {

@@ -23,17 +23,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-
 public class SchemBuilderBlockEntity extends BlockEntity implements ContainerData {
     public static final int BUILD_BATCH_SIZE = 120;
 
     public enum STATE {
-        IDLE(0, Component.translatable("survivalmatic.schembuilder.idle")),
-        RECEIVING_DATA(1,Component.translatable("survivalmatic.schembuilder.receiving_data")),
-        SCHEMATIC_LOCKED(2,Component.translatable("survivalmatic.schembuilder.schematic_locked")),
-        READY(3,Component.translatable("survivalmatic.schembuilder.ready")),
-        BUILDING(4,Component.translatable("survivalmatic.schembuilder.building")),
-        DUMPING(5,Component.translatable("survivalmatic.schembuilder.dumping")),;
+        IDLE(0, Component.translatable("survivalmatic.schembuilder.state.idle")),
+        RECEIVING_DATA(1,Component.translatable("survivalmatic.schembuilder.state.receiving_data")),
+        SCHEMATIC_LOCKED(2,Component.translatable("survivalmatic.schembuilder.state.schematic_locked")),
+        READY(3,Component.translatable("survivalmatic.schembuilder.state.ready")),
+        BUILDING(4,Component.translatable("survivalmatic.schembuilder.state.building")),
+        DUMPING(5,Component.translatable("survivalmatic.schembuilder.state.dumping")),;
         private final int id;
         private final Component stateMessage;
         private static final Map<Integer, STATE> idToState = new HashMap<>();
@@ -57,6 +56,8 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         }
     }
     private @NotNull STATE state = STATE.IDLE;
+
+
     private final LinkedHashMap<Item,Integer> materialBuffer = new LinkedHashMap<>();
     private int materialBufferVersionCounter = 0;
 
@@ -180,7 +181,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         this.state = state;
     }
     public boolean newIncomingRequest() {
-        if(state != STATE.IDLE) {
+        if(getState() != STATE.IDLE) {
             return false;
         }
         setState(STATE.RECEIVING_DATA);
@@ -212,12 +213,16 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         return serverSchematicInstance;
     }
     public void setSchematicInstance(SchematicReader.SchematicInstance serverSchematicInstance) {
-        state = STATE.SCHEMATIC_LOCKED;
+        setState(STATE.SCHEMATIC_LOCKED);
         this.serverSchematicInstance = serverSchematicInstance;
         incrementSchematicInstanceVersionCounter();
         incrementMaterialBufferVersionCounter();
         incrementDumpBufferVersionCounter();
         Survivalmatic.LOGGER.info("SchemBuilder @{}/{} received Schematic {}", this.getBlockPos(), this.getLevel().dimension(), serverSchematicInstance.name());
+    }
+    public void invalidateSchematicInstance() {
+        this.serverSchematicInstance = null;
+        incrementSchematicInstanceVersionCounter();
     }
     public static <T extends BlockEntity> void tick(Level level, BlockPos pos, BlockState state, T Entity) {
         SchemBuilderBlockEntity schemBuilderBlockEntity = (SchemBuilderBlockEntity) Entity;
@@ -231,7 +236,6 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         this.state = switch (state) {
             case IDLE, READY, RECEIVING_DATA -> this.state;
             case SCHEMATIC_LOCKED -> {
-                if(serverSchematicInstance != null) {
                     tickInputSlot();
                     if(enoughResourcesInMaterialBuffer()) {
                         buildInstance = new BuildInstance(getSchematicInstance());
@@ -239,18 +243,10 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
                     }
                     yield STATE.SCHEMATIC_LOCKED;
                 }
-                yield STATE.IDLE;
-            }
             case BUILDING -> {
-                if(buildInstance == null) {
-                    yield STATE.IDLE;
-                }
                 if(buildInstance.isCanceled() || buildInstance.isFinished()) {
                     dumpItems();
                     buildInstance = null;
-                    incrementMaterialBufferVersionCounter();
-                    incrementDumpBufferVersionCounter();
-                    incrementSchematicInstanceVersionCounter();
                     yield STATE.DUMPING;
                 }
                 if(!buildInstance.isPaused()) {
@@ -260,7 +256,11 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             }
             case DUMPING -> {
                 tickOutputSlot();
-                yield dumpBuffer.isEmpty() ? STATE.IDLE : STATE.DUMPING;
+                boolean finished = dumpBuffer.isEmpty();
+                if(finished) {
+                    invalidateSchematicInstance();
+                }
+                yield finished ? STATE.IDLE : STATE.DUMPING;
             }
         };
     }
@@ -307,7 +307,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
     private void tickOutputSlot() {
         ItemStack outputSlotItem = getOutputSlot();
         LinkedHashMap<Item,Integer> dumpBuffer = (LinkedHashMap<Item, Integer>) getDumpBuffer();
-        if(state != STATE.DUMPING && !dumpBuffer.isEmpty() && outputSlotItem.isEmpty()) {
+        if(state == STATE.DUMPING && !dumpBuffer.isEmpty() && outputSlotItem.isEmpty()) {
             Iterator<Map.Entry<Item,Integer>> iterator = dumpBuffer.entrySet().iterator();
             Map.Entry<Item,Integer> item = iterator.next();
             ItemStack newItem = new ItemStack(item.getKey());
@@ -358,7 +358,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
         if(state != STATE.READY) {
             return;
         }
-        state = STATE.BUILDING;
+        setState(STATE.BUILDING);
     }
     public void pauseBuilding() {
         if(state != STATE.BUILDING) {
@@ -380,6 +380,7 @@ public class SchemBuilderBlockEntity extends BlockEntity implements ContainerDat
             dumpItems();
             setState(STATE.DUMPING);
         }
+        invalidateSchematicInstance();
     }
     private void dumpItems() {
         dumpBuffer.putAll(materialBuffer);
