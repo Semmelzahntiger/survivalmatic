@@ -89,7 +89,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setDefaultEntryTexture(DEFAULT_ENTRY, 48, 22)
                 .setListBorderTexture(DEFAULT_LIST_BORDER, 52, 92,2,2,2,2)
                 .build();
-        // Todo: Add Textures and Margins
         ScrollableDropDownList schematicsList = ScrollableDropDownList.Builder.of(getGuiLeft()+69, getGuiTop()+29, 62, 12, 3, Component.empty(), this)
                 .setSelectedEntryBorderTexture(SCHEMATIC_BORDER, 66,16,2,2,2,2)
                 .setListBorderTexture(SCHEMATIC_LIST_BORDER, 66, 36,2,2,2,2)
@@ -99,7 +98,6 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         for (String availableSchematicName : ClientSchematicData.getInstance().getAvailableSchematicNames()) {
             schematicsList.addTextEntry(Component.literal(availableSchematicName));
         }
-
         TextVButton loadButton = TextVButton.Builder.of(getGuiLeft()+69, getGuiTop()+86, 30,20, this)
                 .setEnabledTexture(BUTTON_TEXTURE, 30,20)
                 .setDisabledTexture(BUTTON_TEXTURE, 30,20)
@@ -125,7 +123,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.translatable("survivalmatic.schembuilder.button.load"))
                 .build();
-        // Todo: Finish Waiting Logic
+
         TextVButton uploadButton = TextVButton.Builder.of(getGuiLeft()+101, getGuiTop()+86, 30,20, this)
                 .setEnabledTexture(BUTTON_TEXTURE, 30,20)
                 .setDisabledTexture(BUTTON_TEXTURE, 30,20)
@@ -160,11 +158,23 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.translatable("survivalmatic.schembuilder.button.upload"))
                 .build();
+        GenericVButton refreshButton = GenericVButton.Builder.of(getGuiLeft(), getGuiTop(), 20,20, this)
+                .setEnabledTexture()
+                .setHoverTextureEnabled()
+                .setOnPress(button -> {
+                    ClientSchematicData.INSTANCE.reloadSchematics();
+                    schematicsList.resetEntries();
+                    for (String availableSchematicName : ClientSchematicData.INSTANCE.getAvailableSchematicNames()) {
+                        schematicsList.addTextEntry(Component.literal(availableSchematicName));
+                    }
+                })
+                .build();
         addRenderableWidget(materialsList);
         addRenderableWidget(dumpingList);
         addRenderableWidget(schematicsList);
         addRenderableWidget(loadButton);
         addRenderableWidget(uploadButton);
+        addRenderableWidget(refreshButton);
 
         this.materialsList = materialsList;
         this.dumpingList = dumpingList;
@@ -265,6 +275,8 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         BasicStringWidget schematicNameDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
                 .text(Component.literal("Placeholder"))
                 .build();
+        BasicStringWidget dimensionDisplayWidget = BasicStringWidget.Builder.of().build();
+        BasicStringWidget offsetDisplayWidget = BasicStringWidget.Builder.of().build();
         BasicStringWidget stateDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
                 .text(Component.literal("Placeholder"))
                 .build();
@@ -282,6 +294,8 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .build();
         addRenderableOnly(clientLogDisplayWidget);
         addRenderableOnly(schematicNameDisplayWidget);
+        addRenderableOnly(dimensionDisplayWidget);
+        addRenderableOnly(offsetDisplayWidget);
         addRenderableOnly(stateDisplayWidget);
         addRenderableOnly(progressDisplayWidget);
         addRenderableOnly(pausedDisplayWidget);
@@ -315,25 +329,26 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                     GuiGraphics guiGraphics = renderWrapper.guiGraphics();
                     int entryWidth = customEntry.getWidth();
                     int entryHeight = customEntry.getHeight();
-                    float scaleX = (float) entryWidth / 16;
-                    float scaleY = (float) entryHeight / 16;
-                    float usedScaling = Math.min(1.0f, Math.min(scaleX, scaleY));
-                    float scalePositionAdjustment = 1.0f / usedScaling;
+                    float itemScaleX = (float) entryWidth / 16;
+                    float itemScaleY = (float) entryHeight / 16;
+                    float finalItemScaling = Math.min(1.0f, Math.min(itemScaleX, itemScaleY));
+                    float itemScalePositionAdjustmentMultiplier = 1.0f / finalItemScaling;
                     guiGraphics.pose().pushPose();
-                    guiGraphics.pose().scale(usedScaling, usedScaling, 1.0f);
-                    guiGraphics.renderItem(item, (int) (customEntry.getX() * scalePositionAdjustment), (int) (customEntry.getY() * scalePositionAdjustment));
+                    guiGraphics.pose().scale(finalItemScaling, finalItemScaling, 1.0f);
+                    guiGraphics.renderItem(item, (int) (customEntry.getX() * itemScalePositionAdjustmentMultiplier), (int) (customEntry.getY() * itemScalePositionAdjustmentMultiplier));
+                    guiGraphics.pose().popPose();
                     Font font = Minecraft.getInstance().font;
                     FormattedCharSequence charSequence = FormattedCharSequence.forward(values.getA() + "/" + values.getB(), Style.EMPTY);
                     int textHeight = font.lineHeight;
                     int textWidth = font.width(charSequence);
-                    float widthScaling = Math.min(1.0f, (float) (customEntry.getWidth()-16) / textWidth);
+                    float widthScaling = Math.min(1.0f, (customEntry.getWidth()- 16 * finalItemScaling) / textWidth);
                     float heightScaling = Math.min(1.0f, (float) customEntry.getHeight() / textHeight);
-                    float scaling = Math.min(widthScaling, heightScaling);
-                    float positionScaleCorrectionMultiplier = 1.0f / scaling;
+                    float finalTextScaling = Math.min(widthScaling, heightScaling);
+                    float textScalePositionAdjustmentMultiplier = 1.0f / finalTextScaling;
                     guiGraphics.pose().pushPose();
-                    guiGraphics.pose().scale(scaling, scaling, 1.0f);
-                    guiGraphics.drawString(font, charSequence, (int) ((customEntry.getX() + customEntry.getWidth() - textWidth) * positionScaleCorrectionMultiplier),
-                            (int) ((customEntry.getY() + ((float) customEntry.getHeight() / 2) - ((float) textHeight / 2)) * positionScaleCorrectionMultiplier), 0xFFFFFF);
+                    guiGraphics.pose().scale(finalTextScaling, finalTextScaling, 1.0f);
+                    guiGraphics.drawString(font, charSequence, (int) ((customEntry.getX() + customEntry.getWidth()) * textScalePositionAdjustmentMultiplier - textWidth * finalTextScaling),
+                            (int) ((customEntry.getY() + ((float) customEntry.getHeight() / 2) - ((float) textHeight / 2)) * textScalePositionAdjustmentMultiplier), 0xFFFFFF);
                     guiGraphics.pose().popPose();
                 }));
             });
