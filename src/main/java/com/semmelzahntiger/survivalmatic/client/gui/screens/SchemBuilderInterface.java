@@ -53,6 +53,8 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
 
     BasicStringWidget clientLogDisplayWidget;
     BasicStringWidget schematicNameDisplayWidget;
+    BasicStringWidget dimensionDisplayWidget;
+    BasicStringWidget offsetDisplayWidget;
     BasicStringWidget stateDisplayWidget;
     BasicStringWidget progressDisplayWidget;
     BasicStringWidget pausedDisplayWidget;
@@ -66,7 +68,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     public SchemBuilderInterface(SchemBuilderMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
         this.imageWidth = 338;
-        this.imageHeight = 197;
+        this.imageHeight = 217;
     }
 
 
@@ -98,7 +100,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         for (String availableSchematicName : ClientSchematicData.getInstance().getAvailableSchematicNames()) {
             schematicsList.addTextEntry(Component.literal(availableSchematicName));
         }
-        TextVButton loadButton = TextVButton.Builder.of(getGuiLeft()+69, getGuiTop()+86, 30,20, this)
+        TextVButton loadButton = TextVButton.Builder.of(getGuiLeft()+69, getGuiTop()+106, 30,20, this)
                 .setEnabledTexture(BUTTON_TEXTURE, 30,20)
                 .setDisabledTexture(BUTTON_TEXTURE, 30,20)
                 .setHoverTextureEnabled(BUTTON_BORDER, 32, 22)
@@ -124,7 +126,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 .setText(Component.translatable("survivalmatic.schembuilder.button.load"))
                 .build();
 
-        TextVButton uploadButton = TextVButton.Builder.of(getGuiLeft()+101, getGuiTop()+86, 30,20, this)
+        TextVButton uploadButton = TextVButton.Builder.of(getGuiLeft()+101, getGuiTop()+106, 30,20, this)
                 .setEnabledTexture(BUTTON_TEXTURE, 30,20)
                 .setDisabledTexture(BUTTON_TEXTURE, 30,20)
                 .setHoverTextureEnabled(BUTTON_BORDER, 32, 22)
@@ -158,9 +160,11 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
                 })
                 .setText(Component.translatable("survivalmatic.schembuilder.button.upload"))
                 .build();
-        GenericVButton refreshButton = GenericVButton.Builder.of(getGuiLeft(), getGuiTop(), 20,20, this)
-                .setEnabledTexture()
-                .setHoverTextureEnabled()
+        GenericVButton refreshButton = GenericVButton.Builder.of(getGuiLeft(), getGuiTop(), 16,16, this)
+                .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/refresh_button.png"), 16,16)
+                .setDisabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/refresh_button.png"), 32,32)
+                .setHoverTextureEnabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover.png"), 32,32)
+                .setHoverTextureDisabled(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/button_hover_disabled.png"), 32,32)
                 .setOnPress(button -> {
                     ClientSchematicData.INSTANCE.reloadSchematics();
                     schematicsList.resetEntries();
@@ -185,7 +189,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
     }
     protected void initBuilderButtons() {
         int buttonInitialPosX = getGuiLeft()+134;
-        int buttonInitialPosY = getGuiTop()+90;
+        int buttonInitialPosY = getGuiTop()+110;
         int buttonXPosIndex = 0;
         GenericVButton buildButton = GenericVButton.Builder.of(buttonInitialPosX + 16 * buttonXPosIndex++, buttonInitialPosY, 16,16, this)
                 .setEnabledTexture(ResourceLocation.fromNamespaceAndPath(MODID, "textures/gui/build.png"), 32,32)
@@ -269,28 +273,32 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         int widgetYPosIndex = 0;
 
         BasicStringWidget clientLogDisplayWidget = BasicStringWidget.Builder.of(getGuiLeft()+67, getGuiTop()+6, 204,11, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal(""))
                 .build();
 
         BasicStringWidget schematicNameDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal("Name"))
                 .build();
-        BasicStringWidget dimensionDisplayWidget = BasicStringWidget.Builder.of().build();
-        BasicStringWidget offsetDisplayWidget = BasicStringWidget.Builder.of().build();
+        BasicStringWidget dimensionDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX,initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth, textWidgetHeight, this)
+                .text(Component.literal("Dimensions"))
+                .build();
+        BasicStringWidget offsetDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX,initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth, textWidgetHeight, this)
+                .text(Component.literal("Offset"))
+                .build();
         BasicStringWidget stateDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal("State"))
                 .build();
         BasicStringWidget progressDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal("Build Progress"))
                 .build();
         BasicStringWidget pausedDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal("Paused"))
                 .build();
         BasicStringWidget placesAirDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal("Places Air"))
                 .build();
         BasicStringWidget excavateDisplayWidget = BasicStringWidget.Builder.of(initialTextWidgetPosX, initialTextWidgetPosY + 10 * widgetYPosIndex++, textWidgetWidth,textWidgetHeight, this)
-                .text(Component.literal("Placeholder"))
+                .text(Component.literal("Keeps Excavated"))
                 .build();
         addRenderableOnly(clientLogDisplayWidget);
         addRenderableOnly(schematicNameDisplayWidget);
@@ -303,6 +311,8 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         addRenderableOnly(excavateDisplayWidget);
         this.clientLogDisplayWidget = clientLogDisplayWidget;
         this.schematicNameDisplayWidget = schematicNameDisplayWidget;
+        this.dimensionDisplayWidget = dimensionDisplayWidget;
+        this.offsetDisplayWidget = offsetDisplayWidget;
         this.stateDisplayWidget = stateDisplayWidget;
         this.progressDisplayWidget = progressDisplayWidget;
         this.pausedDisplayWidget = pausedDisplayWidget;
@@ -389,7 +399,7 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         }
         if(this.schematicDataTracker != schematicDataTracker) {
             this.schematicNameDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.schematic.schematic_name").append(interfaceData.getSchematicName()));
-            // Todo: Width, Height, Length Widget updating
+            this.dimensionDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.dimensions").append(String.format("%d, %d, %d", interfaceData.width, interfaceData.height, interfaceData.length)));
         }
         int stateAsInt = this.getMenu().data.get(0);
         SchemBuilderBlockEntity.STATE state = SchemBuilderBlockEntity.STATE.getByID(stateAsInt);
@@ -449,6 +459,10 @@ public class SchemBuilderInterface extends AbstractContainerScreen<SchemBuilderM
         int excavates = this.getMenu().data.get(5);
         excavateDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.keeps_excavated").append(Boolean.toString(excavates == 1)));
         placesAirDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.places_air").append(Boolean.toString(placesAir == 1)));
+        int xOffset = this.getMenu().data.get(6);
+        int yOffset = this.getMenu().data.get(7);
+        int zOffset = this.getMenu().data.get(8);
+        offsetDisplayWidget.setText(Component.translatable("survivalmatic.schembuilder.build.offset").append(Component.literal(String.format("%d, %d, %d", xOffset, yOffset, zOffset))));
     }
     @Override
     protected void renderBg(@NotNull GuiGraphics guiGraphics, float v, int i, int i1) {

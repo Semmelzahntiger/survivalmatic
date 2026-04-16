@@ -101,6 +101,7 @@ public interface IScrollableList {
     }
     default void resetEntries() {
         getEntries().clear();
+        setEntryCount(0);
         realignEntries();
     }
     @FunctionalInterface

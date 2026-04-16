@@ -53,19 +53,19 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
         for(int col = 0; col < 9; col++) {
             this.addSlot(new Slot(
                     playerInventory,
-                    col, 89 + col * 18, 173
+                    col, 89 + col * 18, 193
             ));
             for (int row = 0; row < 3; row++) {
                 this.addSlot(new Slot(
                         playerInventory,
                         col + 9 + row * 9,
                         89 + col * 18,
-                        115 + row * 18
+                        135 + row * 18
                 ));
             }
         }
-        this.addSlot(new SlotItemHandler(builderInventory,0,58, 138));
-        this.addSlot(new SlotItemHandler(builderInventory,1,58, 156));
+        this.addSlot(new SlotItemHandler(builderInventory,0,58, 139));
+        this.addSlot(new SlotItemHandler(builderInventory,1,58, 157));
         this.addDataSlots(containerData);
     }
     public SchemBuilderMenu(int pContainerId, Inventory playerInventory, FriendlyByteBuf pBuffer) {
@@ -202,7 +202,7 @@ public class SchemBuilderMenu extends AbstractContainerMenu {
                     ticksUntilUpdate = tickInterval;
                 }
                 int schematicDataVersion = be.getSchematicInstanceVersionCounter();
-                if(schematicDataVersion != materialBufferVersion) {
+                if(trackedSchematicDataVersion != schematicDataVersion) {
                     ModNetwork.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer), constructSchematicDataPacket(be));
                     trackedSchematicDataVersion = schematicDataVersion;
                 }

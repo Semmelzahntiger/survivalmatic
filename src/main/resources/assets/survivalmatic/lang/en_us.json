@@ -11,6 +11,8 @@
   "survivalmatic.schembuilder.build.paused": "Paused: ",
   "survivalmatic.schembuilder.build.places_air": "Places Air:",
   "survivalmatic.schembuilder.build.keeps_excavated": "Keeps Mined: ",
+  "survivalmatic.schembuilder.build.dimensions": "Dimensions: ",
+  "survivalmatic.schembuilder.build.offset": "Offset: ",
   "survivalmatic.schembuilder.schematic.schematic_name": "Name: ",
   "survivalmatic.schembuilder.log.send_request": "Sent Request to Server. Awaiting Answer...",
   "survivalmatic.schembuilder.log.request_accepted": "Request Accepted by Server, sending Schematic...",
