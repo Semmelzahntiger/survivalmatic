@@ -10,7 +10,7 @@ public abstract class AbstractVWidget extends AbstractWidget {
     protected float xRelative;
     protected float yRelative;
 
-    public <W extends AbstractVWidget,T extends WidgetBuilder<W,T>> AbstractVWidget(WidgetBuilder<W,T> builder) {
+    protected <W extends AbstractVWidget,T extends WidgetBuilder<W,T>> AbstractVWidget(WidgetBuilder<W,T> builder) {
         super(builder.xRelative,builder.yRelative, builder.width, builder.height, builder.pMessage);
         this.parentScreen = builder.parentScreen;
     }

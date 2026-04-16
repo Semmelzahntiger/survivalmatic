@@ -64,7 +64,7 @@ public class AbstractStringWidget<W extends AbstractStringWidget<W>> extends Abs
         guiGraphics.pose().popPose();
     }
     protected void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        guiGraphics.blit(debug, this.getX(), this.getY(), this.getWidth(), this.getHeight(),0,0,256,256, 256, 256);
+        // guiGraphics.blit(debug, this.getX(), this.getY(), this.getWidth(), this.getHeight(),0,0,256,256, 256, 256);
     }
     protected abstract static class Builder<W extends AbstractStringWidget<W>, T extends AbstractVWidget.WidgetBuilder<W,T>> extends AbstractVWidget.WidgetBuilder<W,T> {
         public Component text = Component.empty();
